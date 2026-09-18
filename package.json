@@ -6,7 +6,8 @@
     "scripts":  {
                     "dev":  "vite",
                     "build":  "vite build",
-                    "preview":  "vite preview"
+                    "preview":  "vite preview",
+                    "deploy:worker":  "npm run build \u0026\u0026 npx wrangler deploy --config wrangler.jsonc"
                 },
     "dependencies":  {
                          "@vitejs/plugin-react":  "latest",
