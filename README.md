@@ -54,3 +54,7 @@ npm.cmd run build
 - `docs/VERIFICATION.md`：书籍与听力资源核验
 - `docs/CONTENT-IMPORT.md`：20 个 Unit 的录入说明
 - `public/audio-README.md`：正版音频接入说明
+
+## Cloudflare Workers 配置
+
+项目根目录的 `wrangler.jsonc` 将 Vite 的 `dist/` 配置为 Worker 静态资源目录，并启用 SPA 回退。Cloudflare Workers 的静态资源配置需要指定 `assets.directory`；React/Vite 单页应用还需要 `assets.not_found_handling` 为 `single-page-application`。
