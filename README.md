@@ -58,3 +58,22 @@ npm.cmd run build
 ## Cloudflare Workers 配置
 
 项目根目录的 `wrangler.jsonc` 将 Vite 的 `dist/` 配置为 Worker 静态资源目录，并启用 SPA 回退。Cloudflare Workers 的静态资源配置需要指定 `assets.directory`；React/Vite 单页应用还需要 `assets.not_found_handling` 为 `single-page-application`。
+
+## Cloudflare Worker 修复部署
+
+当前项目的 Worker 静态资源配置已经写入 `wrangler.jsonc`。如果 Cloudflare 控制台的 Git 自动部署没有正确读取 `dist/`，可以使用 Wrangler 直接部署：
+
+```powershell
+cd "C:\Users\xiaolong.liu01\Desktop\口语web"
+npm.cmd run deploy:worker
+```
+
+第一次使用时先运行：
+
+```powershell
+npx.cmd wrangler login
+```
+
+登录完成后再次运行部署命令。该方式不需要启用 Cloudflare Access。
+
+如果只想用 Cloudflare Pages，也可以先运行 `npm.cmd run build`，再在 Pages 的 Direct Upload 中上传 `dist/` 文件夹。
