@@ -2,15 +2,15 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, X } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
-type AuthModalProps = { on??: () => void };
+type AuthModalProps = { onClose: () => void };
 type AuthMode = "signin" | "signup";
 
-export function AuthModal({ on?? }: AuthModalProps) {
+export function AuthModal({ onClose }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
-  const [password, set??] = useState("");
-  const [confirm??, setConfirm??] = useState("");
-  const [show??, setShow??] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
@@ -18,21 +18,21 @@ export function AuthModal({ on?? }: AuthModalProps) {
     event.preventDefault();
     setMessage(null);
     if (!isSupabaseConfigured || !supabase) {
-      setMessage({ type: "error", text: "??????????? Cloudflare Pages ??????? VITE_SUPABASE_URL ? VITE_SUPABASE_ANON_KEY?" });
+      setMessage({ type: "error", text: "Login service is not configured yet. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Cloudflare Pages environment variables." });
       return;
     }
     if (password.length < 6) {
-      setMessage({ type: "error", text: "?? must contain at least 6 characters." });
+      setMessage({ type: "error", text: "Password must contain at least 6 characters." });
       return;
     }
-    if (mode === "signup" && password !== confirm??) {
-      setMessage({ type: "error", text: "???????????" });
+    if (mode === "signup" && password !== confirmPassword) {
+      setMessage({ type: "error", text: "The two passwords do not match." });
       return;
     }
 
     setLoading(true);
     const result = mode === "signin"
-      ? await supabase.auth.signInWith??({ email: email.trim(), password })
+      ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
       : await supabase.auth.signUp({ email: email.trim(), password });
     setLoading(false);
 
@@ -41,33 +41,33 @@ export function AuthModal({ on?? }: AuthModalProps) {
       return;
     }
     if (mode === "signup" && !result.data.session) {
-      setMessage({ type: "success", text: "??????????????????????" });
+      setMessage({ type: "success", text: "Account created. Check your email to confirm the account, then sign in." });
       setMode("signin");
-      set??("");
-      setConfirm??("");
+      setPassword("");
+      setConfirmPassword("");
       return;
     }
-    on??();
+    onClose();
   }
 
-  return <div className="modal-backdrop auth-backdrop" onClick={on??}>
+  return <div className="modal-backdrop auth-backdrop" onClick={onClose}>
     <div className="auth-modal" onClick={(event) => event.stopPropagation()}>
       <div className="auth-visual">
         <div className="auth-orbit orbit-one" /><div className="auth-orbit orbit-two" />
-        <div className="auth-visual-content"><div className="auth-logo"><LockKeyhole size={18} /></div><div className="card-kicker">LINGODESK ????</div><h2>???????<em>??????????</em></h2><p>?????????????????????????????</p><div className="auth-benefit"><CheckCircle2 size={15} />???? + ????</div><div className="auth-benefit"><CheckCircle2 size={15} />???????????</div></div>
+        <div className="auth-visual-content"><div className="auth-logo"><LockKeyhole size={18} /></div><div className="card-kicker">LINGODESK ACCOUNT</div><h2>Keep every practice session <em>on your path.</em></h2><p>Sign in to keep your learning identity. Your current progress still stays in this browser.</p><div className="auth-benefit"><CheckCircle2 size={15} />Email and password sign-in</div><div className="auth-benefit"><CheckCircle2 size={15} />Ready for progress sync later</div></div>
       </div>
       <div className="auth-form-panel">
-        <button className="icon-button auth-close" onClick={on??} aria-label="??"><X size={19} /></button>
-        <div className="auth-form-heading"><div className="card-kicker">????</div><h2>{mode === "signin" ? "????" : "??????"}</h2><p>{mode === "signin" ? "?????????????" : "????????????"}</p></div>
-        {!isSupabaseConfigured && <div className="auth-config-note"><span />??????? Supabase ????????</div>}
+        <button className="icon-button auth-close" onClick={onClose} aria-label="Close"><X size={19} /></button>
+        <div className="auth-form-heading"><div className="card-kicker">ACCOUNT ACCESS</div><h2>{mode === "signin" ? "Welcome back" : "Create your account"}</h2><p>{mode === "signin" ? "Continue your business English training." : "Create your learning space with email."}</p></div>
+        {!isSupabaseConfigured && <div className="auth-config-note"><span />Development preview: connect Supabase before using login.</div>}
         <form onSubmit={submit} className="auth-form">
-          <label>????<div className="auth-input"><Mail size={16} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></div></label>
-          <label>??<div className="auth-input"><LockKeyhole size={16} /><input type={show?? ? "text" : "password"} value={password} onChange={(event) => set??(event.target.value)} placeholder="?? 6 ???" autoComplete={mode === "signin" ? "current-password" : "new-password"} required /><button type="button" onClick={() => setShow??((value) => !value)} aria-label={show?? ? "????" : "????"}>{show?? ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></label>
-          {mode === "signup" && <label>????<div className="auth-input"><LockKeyhole size={16} /><input type={show?? ? "text" : "password"} value={confirm??} onChange={(event) => setConfirm??(event.target.value)} placeholder="??????" autoComplete="new-password" required /></div></label>}
+          <label>Email address<div className="auth-input"><Mail size={16} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required /></div></label>
+          <label>Password<div className="auth-input"><LockKeyhole size={16} /><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 6 characters" autoComplete={mode === "signin" ? "current-password" : "new-password"} required /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></label>
+          {mode === "signup" && <label>Confirm password<div className="auth-input"><LockKeyhole size={16} /><input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Repeat your password" autoComplete="new-password" required /></div></label>}
           {message && <div className={`auth-message ${message.type}`}>{message.text}</div>}
-          <button className="primary-button auth-submit" type="submit" disabled={loading}>{loading ? "????" : mode === "signin" ? "??" : "??"}<ArrowRight size={16} /></button>
+          <button className="primary-button auth-submit" type="submit" disabled={loading}>{loading ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}<ArrowRight size={16} /></button>
         </form>
-        <div className="auth-switch">{mode === "signin" ? "??????" : "??????"}<button onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(null); }}>{mode === "signin" ? "??" : "????"}</button></div>
+        <div className="auth-switch">{mode === "signin" ? "New here?" : "Already have an account?"}<button onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(null); }}>{mode === "signin" ? "Create account" : "Back to sign in"}</button></div>
       </div>
     </div>
   </div>;
@@ -75,9 +75,9 @@ export function AuthModal({ on?? }: AuthModalProps) {
 
 function authErrorMessage(message: string) {
   const normalized = message.toLowerCase();
-  if (normalized.includes("invalid login credentials")) return "?????????";
-  if (normalized.includes("user already registered")) return "This email is already registered. ?? instead.";
-  if (normalized.includes("email not confirmed")) return "????????????????";
-  if (normalized.includes("rate limit")) return "?????????????";
+  if (normalized.includes("invalid login credentials")) return "The email or password is incorrect.";
+  if (normalized.includes("user already registered")) return "This email is already registered. Sign in instead.";
+  if (normalized.includes("email not confirmed")) return "Please confirm your email before signing in.";
+  if (normalized.includes("rate limit")) return "Too many requests. Please try again later.";
   return message;
 }
