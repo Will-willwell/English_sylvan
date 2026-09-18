@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.playwright-cli/
+work/
+.env
+.env.*
+!.env.example
+*.pdf
