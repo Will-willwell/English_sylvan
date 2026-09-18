@@ -41,7 +41,9 @@ Copy-Item .env.example .env
 
 ```text
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your_publishable_or_anon_key
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
+# Legacy projects may use VITE_SUPABASE_ANON_KEY instead
+# VITE_SUPABASE_ANON_KEY=your_legacy_anon_public_key
 ```
 
 只能使用 publishable/anon key，不要把 `service_role` key 或数据库密码放入前端、GitHub 或 Cloudflare Pages。

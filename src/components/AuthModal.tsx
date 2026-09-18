@@ -18,7 +18,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
     event.preventDefault();
     setMessage(null);
     if (!isSupabaseConfigured || !supabase) {
-      setMessage({ type: "error", text: "Login service is not configured yet. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Cloudflare Pages environment variables." });
+      setMessage({ type: "error", text: "Login service is not configured yet. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Cloudflare Pages environment variables." });
       return;
     }
     if (password.length < 6) {
