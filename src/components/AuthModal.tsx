@@ -31,23 +31,32 @@ export function AuthModal({ onClose }: AuthModalProps) {
     }
 
     setLoading(true);
-    const result = mode === "signin"
-      ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      : await supabase.auth.signUp({ email: email.trim(), password });
-    setLoading(false);
+    try {
+      const result = mode === "signin"
+        ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
+        : await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: { emailRedirectTo: window.location.origin },
+          });
+      setLoading(false);
 
-    if (result.error) {
-      setMessage({ type: "error", text: authErrorMessage(result.error.message) });
-      return;
-    }
-    if (mode === "signup" && !result.data.session) {
+      if (result.error) {
+        setMessage({ type: "error", text: authErrorMessage(result.error.message) });
+        return;
+      }
+      if (mode === "signup" && !result.data.session) {
       setMessage({ type: "success", text: "Account created. Check your email to confirm the account, then sign in." });
-      setMode("signin");
-      setPassword("");
-      setConfirmPassword("");
-      return;
+        setMode("signin");
+        setPassword("");
+        setConfirmPassword("");
+        return;
+      }
+      onClose();
+    } catch {
+      setLoading(false);
+      setMessage({ type: "error", text: "Unable to reach the login service. Check the Supabase URL and try again." });
     }
-    onClose();
   }
 
   return <div className="modal-backdrop auth-backdrop" onClick={onClose}>
