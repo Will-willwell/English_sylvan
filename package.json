@@ -1,23 +1,21 @@
 {
-    "name":  "business-speaking-coach",
-    "private":  true,
-    "version":  "0.1.0",
-    "type":  "module",
-    "scripts":  {
-                    "dev":  "vite",
-                    "build":  "vite build",
-                    "preview":  "vite preview",
-                    "deploy:worker":  "npm run build \u0026\u0026 npx wrangler deploy --config wrangler.jsonc"
-                },
-    "dependencies":  {
-                         "@vitejs/plugin-react":  "latest",
-                         "lucide-react":  "latest",
-                         "react":  "latest",
-                         "react-dom":  "latest",
-                         "vite":  "latest",
-                         "typescript":  "latest"
-                     },
-    "devDependencies":  {
-
-                        }
+    "name": "business-speaking-coach",
+    "private": true,
+    "version": "0.1.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "deploy:worker": "npm run build && npx wrangler deploy --config wrangler.jsonc"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.116.0",
+        "@vitejs/plugin-react": "latest",
+        "lucide-react": "latest",
+        "react": "latest",
+        "react-dom": "latest",
+        "typescript": "latest",
+        "vite": "latest"
+    }
 }

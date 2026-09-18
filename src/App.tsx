@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import type { User } from "@supabase/supabase-js";
 import {
   ArrowUpRight,
   BookOpen,
@@ -27,6 +28,8 @@ import {
   type LessonContent,
   type Unit,
 } from "./data/course";
+import { AuthModal } from "./components/AuthModal";
+import { isSupabaseConfigured, supabase } from "./lib/supabase";
 
 const STORAGE_KEY = "business-speaking-progress-v1";
 
@@ -62,6 +65,28 @@ function App() {
   });
   const [showAudioPanel, setShowAudioPanel] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authUser, setAuthUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setAuthUser(data.session?.user ?? null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  async function signOut() {
+    if (supabase) await supabase.auth.signOut();
+    setAuthUser(null);
+  }
 
   const activeUnit = allUnits.find((unit) => unit.id === activeUnitId) ?? allUnits[0];
   const lesson = lessonContent[activeUnit.id] ?? lessonContent[1];
@@ -111,7 +136,7 @@ function App() {
         </div>
         <div className="sidebar-footer">
           <div className="mini-goal"><div className="mini-goal-icon"><Sparkles size={16} /></div><div><strong>今日目标</strong><span>完成 1 个口语练习</span></div></div>
-          <div className="user-chip"><div className="avatar">Y</div><div><strong>你的学习空间</strong><span>本地进度已保存</span></div><ChevronRight size={16} /></div>
+          <button className="user-chip" onClick={() => authUser ? signOut() : setShowAuthModal(true)}><div className="avatar">{authUser ? (authUser.email?.[0]?.toUpperCase() ?? "U") : "Y"}</div><div><strong>{authUser ? (authUser.email ?? "Signed in") : "Sign in"}</strong><span>{authUser ? "Click to sign out" : "Sync identity later"}</span></div><ChevronRight size={16} /></button>
         </div>
       </aside>
 
@@ -119,7 +144,7 @@ function App() {
         <header className="topbar">
           <button className="mobile-menu-trigger" onClick={() => setShowMobileMenu(true)} aria-label="打开菜单"><Waves size={20} /></button>
           <div className="breadcrumb"><span>学习总览</span><ChevronRight size={15} /><strong>Chapter {activeUnit.id}</strong></div>
-          <div className="topbar-actions"><button className="help-button"><CircleHelp size={17} />使用帮助</button><div className="topbar-avatar">Y</div></div>
+          <div className="topbar-actions"><button className="help-button"><CircleHelp size={17} />Help</button><button className="account-button" onClick={() => authUser ? signOut() : setShowAuthModal(true)}>{authUser ? "Sign out" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (authUser.email?.[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
         </header>
 
         <div className="page-container">
@@ -154,6 +179,7 @@ function App() {
         </div>
       </main>
       {showAudioPanel && <AudioPanel onClose={() => setShowAudioPanel(false)} />}
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
     </div>
   );
 }
