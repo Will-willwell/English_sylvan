@@ -41,6 +41,8 @@ npm.cmd run provision:user -- --username sylvan001 --password "a password with 6
 
 The script inserts the username into the allowlist and creates a confirmed Supabase Auth user. The browser has no sign-up flow. A direct sign-up request with an unregistered username is rejected by the database trigger once the SQL schema is installed.
 
+The same SQL file also creates `public.user_progress`. Run the updated `supabase/schema.sql` again in Supabase SQL Editor to enable per-user cloud progress. Existing tables, policies, and triggers are guarded with `if not exists` / `drop ... if exists` so the migration can be rerun safely.
+
 ### Username rules
 
 - 3-32 characters
@@ -54,7 +56,8 @@ The script inserts the username into the allowlist and creates a confirmed Supab
 
 Connect the GitHub repository to Cloudflare Pages:
 
-- Framework preset: Vite
+- Framework preset: None (or React if Cloudflare offers it)
+- Vite is configured manually through the build command below
 - Build command: `npm run build`
 - Build output directory: `dist`
 - Root directory: empty

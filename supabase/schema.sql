@@ -93,3 +93,50 @@ create trigger sync_profile_from_auth
 -- Example allowlist entry. Replace it with real usernames before creating users.
 -- insert into public.allowed_usernames (username, display_name)
 -- values ('sylvan001', 'Sylvan');
+
+-- Per-user cloud learning progress. RLS prevents users from reading or writing
+-- another user's rows. The frontend still keeps a local cache for offline use.
+create table if not exists public.user_progress (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  unit_id integer not null check (unit_id > 0),
+  progress integer not null default 0 check (progress between 0 and 100),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, unit_id)
+);
+
+alter table public.user_progress enable row level security;
+drop policy if exists "Users can read their own progress" on public.user_progress;
+create policy "Users can read their own progress"
+  on public.user_progress for select
+  to authenticated
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert their own progress" on public.user_progress;
+create policy "Users can insert their own progress"
+  on public.user_progress for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update their own progress" on public.user_progress;
+create policy "Users can update their own progress"
+  on public.user_progress for update
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create or replace function public.set_progress_updated_at()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists set_progress_updated_at on public.user_progress;
+create trigger set_progress_updated_at
+  before update on public.user_progress
+  for each row execute function public.set_progress_updated_at();

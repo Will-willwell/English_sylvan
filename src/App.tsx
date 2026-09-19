@@ -33,6 +33,33 @@ import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 
 const STORAGE_KEY = "business-speaking-progress-v1";
 
+type ProgressRow = {
+  unit_id: number;
+  progress: number;
+};
+
+function readProgress(storageKey: string): Record<number, number> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(storageKey) || "{}");
+    if (!parsed || typeof parsed !== "object") return {};
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([unitId, value]) =>
+        /^\d+$/.test(unitId) && typeof value === "number" && Number.isFinite(value),
+      ),
+    ) as Record<number, number>;
+  } catch {
+    return {};
+  }
+}
+
+function progressStorageKey(userId?: string) {
+  return userId ? `${STORAGE_KEY}:${userId}` : STORAGE_KEY;
+}
+
+function clampProgress(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
 type SpeechRecognitionEventLike = Event & {
   results: { [index: number]: { [index: number]: { transcript: string } } };
 };
@@ -56,18 +83,13 @@ function App() {
   const [activeSection, setActiveSection] = useState("all");
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"learn" | "practice" | "dialogue">("learn");
-  const [savedProgress, setSavedProgress] = useState<Record<number, number>>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    } catch {
-      return {};
-    }
-  });
+  const [savedProgress, setSavedProgress] = useState<Record<number, number>>(() => readProgress(STORAGE_KEY));
   const [showAudioPanel, setShowAudioPanel] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [authChecking, setAuthChecking] = useState(isSupabaseConfigured);
+  const progressLoadRef = useRef(0);
 
   useEffect(() => {
     if (!supabase) return;
@@ -93,6 +115,62 @@ function App() {
     if (isSupabaseConfigured && !authChecking && !authUser) setShowAuthModal(true);
   }, [authChecking, authUser]);
 
+  useEffect(() => {
+    const requestId = ++progressLoadRef.current;
+    const storageKey = progressStorageKey(authUser?.id);
+    const localProgress = readProgress(storageKey);
+    setSavedProgress(localProgress);
+
+    if (!authUser || !supabase) return;
+
+    let cancelled = false;
+    async function loadCloudProgress() {
+      const { data, error } = await supabase
+        .from("user_progress")
+        .select("unit_id, progress")
+        .eq("user_id", authUser.id);
+
+      if (cancelled || requestId !== progressLoadRef.current) return;
+      if (error) {
+        console.warn("Cloud progress could not be loaded; local progress remains active.", error.message);
+        return;
+      }
+
+      const cloudProgress = Object.fromEntries(
+        ((data ?? []) as ProgressRow[]).map((row) => [row.unit_id, clampProgress(row.progress)]),
+      ) as Record<number, number>;
+      const mergedProgress = { ...localProgress };
+      Object.entries(cloudProgress).forEach(([unitId, value]) => {
+        const numericUnitId = Number(unitId);
+        mergedProgress[numericUnitId] = Math.max(mergedProgress[numericUnitId] ?? 0, value);
+      });
+
+      setSavedProgress(mergedProgress);
+      localStorage.setItem(storageKey, JSON.stringify(mergedProgress));
+
+      const pendingRows = Object.entries(mergedProgress)
+        .filter(([unitId, value]) => cloudProgress[Number(unitId)] !== value)
+        .map(([unitId, value]) => ({
+          user_id: authUser.id,
+          unit_id: Number(unitId),
+          progress: clampProgress(value),
+          updated_at: new Date().toISOString(),
+        }));
+
+      if (pendingRows.length > 0) {
+        const { error: syncError } = await supabase
+          .from("user_progress")
+          .upsert(pendingRows, { onConflict: "user_id,unit_id" });
+        if (syncError) console.warn("Local progress could not be synced.", syncError.message);
+      }
+    }
+
+    void loadCloudProgress();
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser?.id]);
+
   async function signOut() {
     if (supabase) await supabase.auth.signOut();
     setAuthUser(null);
@@ -113,9 +191,25 @@ function App() {
   const overallProgress = Math.round(allUnits.reduce((sum, unit) => sum + (savedProgress[unit.id] ?? unit.progress), 0) / allUnits.length);
 
   function updateUnitProgress(nextProgress: number) {
-    const next = { ...savedProgress, [activeUnit.id]: Math.max(progress, nextProgress) };
+    const updatedProgress = clampProgress(Math.max(progress, nextProgress));
+    const next = { ...savedProgress, [activeUnit.id]: updatedProgress };
+    const storageKey = progressStorageKey(authUser?.id);
     setSavedProgress(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    localStorage.setItem(storageKey, JSON.stringify(next));
+
+    if (authUser && supabase) {
+      void supabase
+        .from("user_progress")
+        .upsert({
+          user_id: authUser.id,
+          unit_id: activeUnit.id,
+          progress: updatedProgress,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id,unit_id" })
+        .then(({ error }) => {
+          if (error) console.warn("Progress was saved locally but not synced to Supabase.", error.message);
+        });
+    }
   }
 
   function selectUnit(unit: Unit) {
