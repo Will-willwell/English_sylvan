@@ -29,7 +29,7 @@ import {
   type Unit,
 } from "./data/course";
 import { AuthModal } from "./components/AuthModal";
-import { isSupabaseConfigured, supabase } from "./lib/supabase";
+import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 
 const STORAGE_KEY = "business-speaking-progress-v1";
 
@@ -67,21 +67,31 @@ function App() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
+  const [authChecking, setAuthChecking] = useState(isSupabaseConfigured);
 
   useEffect(() => {
     if (!supabase) return;
     let mounted = true;
     supabase.auth.getSession().then(({ data }) => {
-      if (mounted) setAuthUser(data.session?.user ?? null);
+      if (!mounted) return;
+      setAuthUser(data.session?.user ?? null);
+      setAuthChecking(false);
+    }).catch(() => {
+      if (mounted) setAuthChecking(false);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setAuthUser(session?.user ?? null);
+      setAuthChecking(false);
     });
     return () => {
       mounted = false;
       listener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (isSupabaseConfigured && !authChecking && !authUser) setShowAuthModal(true);
+  }, [authChecking, authUser]);
 
   async function signOut() {
     if (supabase) await supabase.auth.signOut();
@@ -136,7 +146,7 @@ function App() {
         </div>
         <div className="sidebar-footer">
           <div className="mini-goal"><div className="mini-goal-icon"><Sparkles size={16} /></div><div><strong>今日目标</strong><span>完成 1 个口语练习</span></div></div>
-          <button className="user-chip" onClick={() => authUser ? signOut() : setShowAuthModal(true)}><div className="avatar">{authUser ? (authUser.email?.[0]?.toUpperCase() ?? "U") : "Y"}</div><div><strong>{authUser ? (authUser.email ?? "Signed in") : "Sign in"}</strong><span>{authUser ? "Click to sign out" : "Sync identity later"}</span></div><ChevronRight size={16} /></button>
+          <button className="user-chip" onClick={() => authUser ? signOut() : setShowAuthModal(true)}><div className="avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div><div><strong>{authUser ? (userToUsername(authUser) || "Learner") : "Not signed in"}</strong><span>{authUser ? "Sign out" : "Sign in"}</span></div><ChevronRight size={16} /></button>
         </div>
       </aside>
 
@@ -144,7 +154,7 @@ function App() {
         <header className="topbar">
           <button className="mobile-menu-trigger" onClick={() => setShowMobileMenu(true)} aria-label="打开菜单"><Waves size={20} /></button>
           <div className="breadcrumb"><span>学习总览</span><ChevronRight size={15} /><strong>Chapter {activeUnit.id}</strong></div>
-          <div className="topbar-actions"><button className="help-button"><CircleHelp size={17} />Help</button><button className="account-button" onClick={() => authUser ? signOut() : setShowAuthModal(true)}>{authUser ? "Sign out" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (authUser.email?.[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
+          <div className="topbar-actions"><button className="help-button"><CircleHelp size={17} />Help</button><button className="account-button" onClick={() => authUser ? signOut() : setShowAuthModal(true)}>{authUser ? "Sign out" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
         </header>
 
         <div className="page-container">
@@ -166,7 +176,7 @@ function App() {
 
           <section id="lesson-workspace" className="workspace-grid">
             <div className="content-column">
-              <div className="tabs-row"><div className="tabs"><button className={activeTab === "learn" ? "active" : ""} onClick={() => setActiveTab("learn")}>章节学习</button><button className={activeTab === "practice" ? "active" : ""} onClick={() => setActiveTab("practice")}>跟读练习</button><button className={activeTab === "dialogue" ? "active" : ""} onClick={() => setActiveTab("dialogue")}>互动对话</button></div><span className="source-badge"><span />20 个 Unit 已录入</span></div>
+              <div className="tabs-row"><div className="tabs"><button className={activeTab === "learn" ? "active" : ""} onClick={() => setActiveTab("learn")}>Learn</button><button className={activeTab === "practice" ? "active" : ""} onClick={() => setActiveTab("practice")}>Practice</button><button className={activeTab === "dialogue" ? "active" : ""} onClick={() => setActiveTab("dialogue")}>Dialogue</button></div><span className="source-badge"><span />20 Units loaded</span></div>
               {activeTab === "learn" && <LearnPanel unit={activeUnit} lesson={lesson} onSpeak={() => speak(activeUnit.title)} onProgress={updateUnitProgress} onPractice={() => setActiveTab("practice")} />}
               {activeTab === "practice" && <PracticePanel unit={activeUnit} target={lesson.expressions[0].english} onProgress={updateUnitProgress} />}
               {activeTab === "dialogue" && <DialoguePanel unit={activeUnit} lesson={lesson} onProgress={updateUnitProgress} />}
@@ -179,7 +189,7 @@ function App() {
         </div>
       </main>
       {showAudioPanel && <AudioPanel onClose={() => setShowAudioPanel(false)} />}
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      {showAuthModal && <AuthModal required={isSupabaseConfigured && !authUser} onClose={() => setShowAuthModal(false)} />}
     </div>
   );
 }

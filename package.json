@@ -7,7 +7,8 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "deploy:worker": "npm run build && npx wrangler deploy --config wrangler.jsonc"
+        "deploy:worker": "npm run build && npx wrangler deploy --config wrangler.jsonc",
+        "provision:user": "node scripts/provision-user.mjs"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.116.0",

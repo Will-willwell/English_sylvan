@@ -1,64 +1,86 @@
-# LingoDesk - 商务英语口语教练
+# LingoDesk - Business Speaking Lab
 
-一个按《Collins English for Business: Speaking》目录顺序组织的移动端优先口语训练网站原型。
+This repository contains the current LingoDesk learning website rebuilt from the GitHub project: 20 business-English units, shadowing practice, browser speech recognition, role-play dialogues, and audio-source notes. Authentication is intentionally username-only: accounts are created by the administrator, and unregistered users cannot sign in or self-register.
 
-## 当前版本
+## Stack
 
 - React + TypeScript + Vite
-- 全书 20 个 Unit 的课程地图
-- 每个 Unit 的重点表达、章节练习和互动角色脚本
-- 浏览器英文朗读和语音识别辅助跟读
-- 本地保存学习进度
-- 邮箱 + 密码注册、登录和退出
-- Supabase Auth 会话持久化
-- 每章可选择授权的正版 MP3 在当前浏览器本地播放
-- Cloudflare Pages / Workers 静态资源配置
+- Supabase Auth + PostgreSQL for sessions and the username allowlist
+- Cloudflare Workers Static Assets (or Cloudflare Pages)
+- GitHub as the source repository and deployment trigger
 
-## 本地运行
+## Local development
 
 ```powershell
 npm.cmd install
+Copy-Item .env.example .env
+# Fill in VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env
 npm.cmd run dev
 ```
 
-## 生产构建
+Without Supabase variables, the site can still be previewed locally. With Supabase configured, the first visit opens the sign-in screen.
 
-```powershell
-npm.cmd run build
-```
+## Supabase setup
 
-构建产物在 `dist/`。
-
-## 配置邮箱密码登录
-
-登录功能使用 Supabase Auth。复制 `.env.example` 为 `.env`：
-
-```powershell
-Copy-Item .env.example .env
-```
-
-在 `.env` 中填写：
+1. Create a new Supabase project.
+2. Open SQL Editor and run [`supabase/schema.sql`](./supabase/schema.sql). It creates the allowlist, profiles, and an `auth.users` trigger that rejects unregistered usernames.
+3. Copy the Project URL and Publishable key from Settings -> API into `.env`:
 
 ```text
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
-# Legacy projects may use VITE_SUPABASE_ANON_KEY instead
-# VITE_SUPABASE_ANON_KEY=your_legacy_anon_public_key
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-只能使用 publishable/anon key，不要把 `service_role` key 或数据库密码放入前端、GitHub 或 Cloudflare Pages。
+4. Provision accounts with the admin-only script. Never put the service-role key in the frontend or any `VITE_*` variable:
 
-## Cloudflare Pages 构建设置
-
-```text
-框架预设：无（没有 Vite 选项时选择无）
-构建命令： npm run build
-构建输出目录： dist
-根目录：留空
+```powershell
+$env:SUPABASE_URL="https://your-project.supabase.co"
+$env:SUPABASE_SECRET_KEY="sb_secret_your_key"
+npm.cmd run provision:user -- --username sylvan001 --password "a password with 6+ characters" --display-name "Sylvan"
 ```
 
-在 Cloudflare Pages 的 Settings -> Environment variables 中添加 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`，然后重新部署。
+The script inserts the username into the allowlist and creates a confirmed Supabase Auth user. The browser has no sign-up flow. A direct sign-up request with an unregistered username is rejected by the database trigger once the SQL schema is installed.
 
-## 内容与版权
+### Username rules
 
-课程索引、重点表达、练习和角色脚本是面向口语训练的原创教学编排，不是整本书的逐字转载。
+- 3-32 characters
+- lowercase letters, numbers, dot, underscore, and hyphen only
+- the browser maps a username to `<username>@english-sylvan.local` internally so Supabase can provide password hashing and sessions without exposing a real email address
+- only `signInWithPassword` is used in the frontend
+
+## Cloudflare setup
+
+### Cloudflare Pages with GitHub
+
+Connect the GitHub repository to Cloudflare Pages:
+
+- Framework preset: Vite
+- Build command: `npm run build`
+- Build output directory: `dist`
+- Root directory: empty
+- Production and Preview variables: `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (or the legacy `VITE_SUPABASE_ANON_KEY`)
+
+Do not expose `SUPABASE_SECRET_KEY` (or legacy `SUPABASE_SERVICE_ROLE_KEY`) as a `VITE_*` variable. It is only for `scripts/provision-user.mjs`.
+
+### Cloudflare Workers Static Assets
+
+The repository already includes [`wrangler.jsonc`](./wrangler.jsonc):
+
+```powershell
+npm.cmd run deploy:worker
+```
+
+The command builds `dist` and deploys it with SPA fallback. If deployment is run from GitHub Actions, inject the two public `VITE_*` build variables through Actions variables/secrets before `npm run build`.
+
+## Verification
+
+```powershell
+npm.cmd run build
+node --check scripts/provision-user.mjs
+```
+
+Before production, test one allowlisted username, a wrong password, and an unregistered username. Also verify session persistence after refresh and that Sign out opens the required login screen again.
+
+## Content and copyright
+
+The course index, expressions, exercises, and role-play scripts are original learning arrangements. The audio panel provides official or third-party links as references and does not redistribute copyrighted audio files.
