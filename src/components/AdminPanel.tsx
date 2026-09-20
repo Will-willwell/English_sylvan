@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Check, KeyRound, LoaderCircle, Power, RefreshCw, ShieldCheck, Trash2, UserPlus, X } from "lucide-react";
+import { BarChart3, Check, KeyRound, LoaderCircle, Power, RefreshCw, ShieldCheck, Trash2, UserPlus, X } from "lucide-react";
 import { createAdminUser, deleteAdminUser, listAdminUsers, updateAdminUser, type AdminUser } from "../lib/admin";
+import { AdminActivityView } from "./AdminActivityView";
 
 type AdminPanelProps = { onClose: () => void };
 type FormMessage = { type: "error" | "success"; text: string } | null;
@@ -17,6 +18,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
   const [newPassword, setNewPassword] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
   const [newIsAdmin, setNewIsAdmin] = useState(false);
+  const [view, setView] = useState<"users" | "activity">("users");
 
   async function refresh() {
     setLoading(true);
@@ -76,6 +78,8 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
         <button className="icon-button" onClick={onClose} aria-label="Close"><X size={19} /></button>
       </div>
       {message && <div className={`auth-message ${message.type}`}>{message.text}</div>}
+      <div className="admin-view-tabs"><button className={view === "users" ? "active" : ""} onClick={() => setView("users")}><UserPlus size={15} />Users</button><button className={view === "activity" ? "active" : ""} onClick={() => setView("activity")}><BarChart3 size={15} />Activity & stats</button></div>
+      {view === "users" && <>
       <div className="admin-toolbar"><button className="primary-button compact" onClick={() => setShowCreate((value) => !value)}><UserPlus size={15} />{showCreate ? "Hide create form" : "Create user"}</button><button className="secondary-button compact" onClick={() => void refresh()} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} />Refresh</button></div>
       {showCreate && <div className="admin-create-form">
         <div className="admin-form-grid"><label>Username<input value={newUsername} onChange={(event) => setNewUsername(event.target.value)} placeholder="e.g. student002" autoCapitalize="none" spellCheck={false} /></label><label>Display name<input value={newDisplayName} onChange={(event) => setNewDisplayName(event.target.value)} placeholder="e.g. Student 002" /></label><label>Initial password<input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="At least 6 characters" /></label></div>
@@ -85,6 +89,8 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
       <div className="admin-list">
         {loading && users.length === 0 ? <div className="admin-empty"><LoaderCircle className="spin" size={20} />Loading users...</div> : users.length === 0 ? <div className="admin-empty">No allowlisted users.</div> : users.map((user) => <AdminUserRow key={user.username} user={user} busy={busy} onPatch={patchUser} onDelete={removeUser} />)}
       </div>
+      </>}
+      {view === "activity" && <AdminActivityView />}
       <div className="modal-note"><ShieldCheck size={15} />Changes update Supabase Auth and the username allowlist. Deleting a user also removes that user's profile and cloud progress.</div>
     </div>
   </div>;

@@ -54,3 +54,26 @@ export async function updateAdminUser(input: { username: string; password?: stri
 export async function deleteAdminUser(username: string) {
   return adminRequest("/api/admin/users", { method: "DELETE", body: JSON.stringify({ username }) });
 }
+
+
+export type AdminActivity = {
+  id: number;
+  user_id: string;
+  username: string;
+  display_name: string;
+  unit_id: number | null;
+  activity_type: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type AdminActivityPayload = {
+  users: Array<{ username: string; display_name: string; is_active: boolean }>;
+  activities: AdminActivity[];
+  stats: { total_users: number; enabled_users: number; active_users: number; completed_units: number; activity_count: number };
+};
+
+export async function getAdminActivity(username = "") {
+  const query = username ? `?username=${encodeURIComponent(username)}&limit=200` : "?limit=200";
+  return adminRequest(`/api/admin/activity${query}`) as Promise<AdminActivityPayload>;
+}
