@@ -55,6 +55,8 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+alter table public.profiles add column if not exists is_admin boolean not null default false;
+
 alter table public.profiles enable row level security;
 drop policy if exists "Users can read their own profile" on public.profiles;
 create policy "Users can read their own profile"
@@ -140,3 +142,9 @@ drop trigger if exists set_progress_updated_at on public.user_progress;
 create trigger set_progress_updated_at
   before update on public.user_progress
   for each row execute function public.set_progress_updated_at();
+
+-- After creating the first account, promote it once from SQL Editor.
+-- Replace sylvan with your chosen administrator username.
+-- update public.profiles
+-- set is_admin = true
+-- where username = 'sylvan';

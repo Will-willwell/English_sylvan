@@ -87,3 +87,24 @@ Before production, test one allowlisted username, a wrong password, and an unreg
 ## Content and copyright
 
 The course index, expressions, exercises, and role-play scripts are original learning arrangements. The audio panel provides official or third-party links as references and does not redistribute copyrighted audio files.
+
+## Administrator user management
+
+The administrator console is available only to accounts whose `public.profiles.is_admin` is `true`. Run the latest `supabase/schema.sql` (or the shorter `supabase/admin.sql` if the main schema is already installed), then promote the first administrator once in Supabase SQL Editor:
+
+```sql
+update public.profiles
+set is_admin = true
+where username = 'sylvan';
+```
+
+The admin console uses the Cloudflare Pages Function at `/api/admin/users`. Add these **server-only** variables to Cloudflare Pages (Production and Preview only if you use the console in previews):
+
+```text
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
+```
+
+Legacy Supabase projects may use `SUPABASE_SERVICE_ROLE_KEY` instead of `SUPABASE_SECRET_KEY`. Never prefix either secret with `VITE_`, never expose it to the browser, and never commit it to GitHub.
+
+After deployment, sign in as the promoted administrator and open **Admin** in the header. The console can create users, reset passwords, enable/disable accounts, change display names, and grant/revoke administrator status. It intentionally has no delete action.

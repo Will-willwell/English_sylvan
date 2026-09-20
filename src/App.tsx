@@ -29,6 +29,7 @@ import {
   type Unit,
 } from "./data/course";
 import { AuthModal } from "./components/AuthModal";
+import { AdminPanel } from "./components/AdminPanel";
 import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 
 const STORAGE_KEY = "business-speaking-progress-v1";
@@ -89,6 +90,8 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [authChecking, setAuthChecking] = useState(isSupabaseConfigured);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const progressLoadRef = useRef(0);
 
   useEffect(() => {
@@ -116,6 +119,22 @@ function App() {
   }, [authChecking, authUser]);
 
   useEffect(() => {
+    if (!authUser || !supabase) {
+      setIsAdmin(false);
+      setShowAdminPanel(false);
+      return;
+    }
+    let cancelled = false;
+    const client = supabase;
+    client.from("profiles").select("is_admin").eq("id", authUser.id).maybeSingle().then(({ data }) => {
+      if (!cancelled) setIsAdmin(data?.is_admin === true);
+    }, () => {
+      if (!cancelled) setIsAdmin(false);
+    });
+    return () => { cancelled = true; };
+  }, [authUser?.id]);
+
+  useEffect(() => {
     const requestId = ++progressLoadRef.current;
     const storageKey = progressStorageKey(authUser?.id);
     const localProgress = readProgress(storageKey);
@@ -123,9 +142,10 @@ function App() {
 
     if (!authUser || !supabase) return;
 
+    const client = supabase;
     let cancelled = false;
     async function loadCloudProgress() {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("user_progress")
         .select("unit_id, progress")
         .eq("user_id", authUser.id);
@@ -158,7 +178,7 @@ function App() {
         }));
 
       if (pendingRows.length > 0) {
-        const { error: syncError } = await supabase
+        const { error: syncError } = await client
           .from("user_progress")
           .upsert(pendingRows, { onConflict: "user_id,unit_id" });
         if (syncError) console.warn("Local progress could not be synced.", syncError.message);
@@ -248,7 +268,7 @@ function App() {
         <header className="topbar">
           <button className="mobile-menu-trigger" onClick={() => setShowMobileMenu(true)} aria-label="打开菜单"><Waves size={20} /></button>
           <div className="breadcrumb"><span>学习总览</span><ChevronRight size={15} /><strong>Chapter {activeUnit.id}</strong></div>
-          <div className="topbar-actions"><button className="help-button"><CircleHelp size={17} />Help</button><button className="account-button" onClick={() => authUser ? signOut() : setShowAuthModal(true)}>{authUser ? "Sign out" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
+          <div className="topbar-actions"><button className="help-button"><CircleHelp size={17} />Help</button>{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? signOut() : setShowAuthModal(true)}>{authUser ? "Sign out" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
         </header>
 
         <div className="page-container">
@@ -283,6 +303,7 @@ function App() {
         </div>
       </main>
       {showAudioPanel && <AudioPanel onClose={() => setShowAudioPanel(false)} />}
+      {showAdminPanel && isAdmin && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
       {showAuthModal && <AuthModal required={isSupabaseConfigured && !authUser} onClose={() => setShowAuthModal(false)} />}
     </div>
   );

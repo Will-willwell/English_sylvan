@@ -189,3 +189,34 @@ h1 em { color: var(--green); font-style: normal; }
 .auth-visual-content { position: relative; z-index: 1; }.auth-logo { display: grid; place-items: center; width: 39px; height: 39px; color: var(--green-dark); border-radius: 12px; background: #dff1e7; }.auth-visual .card-kicker { margin-top: 25px; color: #98c3b1; }.auth-visual h2 { max-width: 290px; margin-top: 12px; color: #fff; font: 800 29px/1.12 "Manrope", sans-serif; letter-spacing: -.06em; }.auth-visual h2 em { color: #f5bd78; font-style: normal; }.auth-visual p { max-width: 280px; margin-top: 18px; color: #bad4c9; font-size: 11px; line-height: 1.75; }.auth-benefit { display: flex; align-items: center; gap: 7px; margin-top: 17px; color: #d7eee1; font-size: 10px; }.auth-benefit + .auth-benefit { margin-top: 9px; }.auth-form-panel { position: relative; padding: 39px 36px 33px; }.auth-close { position: absolute; top: 17px; right: 17px; }.auth-form-heading h2 { margin-top: 8px; color: var(--ink); font: 800 25px "Manrope", sans-serif; letter-spacing: -.06em; }.auth-form-heading p { margin-top: 8px; color: #869691; font-size: 11px; }.auth-config-note { display: flex; gap: 7px; margin-top: 21px; padding: 10px; color: #8c7029; border-radius: 8px; background: #fff9e7; font-size: 9px; line-height: 1.5; }.auth-config-note span { width: 6px; height: 6px; margin-top: 3px; flex: 0 0 auto; border-radius: 50%; background: #e4ad4c; }.auth-form { display: grid; gap: 15px; margin-top: 22px; }.auth-form label { color: #647b74; font-size: 10px; font-weight: 700; }.auth-input { display: flex; align-items: center; gap: 8px; margin-top: 7px; padding: 10px 11px; color: #9aaba4; border: 1px solid #dfe9e2; border-radius: 9px; background: #fbfdfb; }.auth-input:focus-within { border-color: #8fbba0; box-shadow: 0 0 0 3px rgba(143,187,160,.13); }.auth-input input { width: 100%; min-width: 0; color: var(--ink); border: 0; outline: 0; background: transparent; font-size: 11px; }.auth-input button { display: grid; place-items: center; color: #93a49e; background: transparent; }.auth-submit { width: 100%; margin-top: 4px; }.auth-submit:disabled { cursor: wait; opacity: .65; }.auth-message { padding: 10px; border-radius: 8px; font-size: 10px; line-height: 1.5; }.auth-message.error { color: #9a5a4d; background: #fff1ed; }.auth-message.success { color: #39745f; background: #e9f6ed; }.auth-switch { margin-top: 20px; color: #91a19c; text-align: center; font-size: 10px; }.auth-switch button { margin-left: 4px; padding: 0; color: var(--green); background: transparent; font-weight: 800; }
 @media (max-width: 650px) { .auth-modal { grid-template-columns: 1fr; max-height: 92vh; overflow: auto; }.auth-visual { min-height: 195px; padding: 24px 22px; }.auth-visual h2 { max-width: 450px; font-size: 24px; }.auth-visual p { display: none; }.auth-benefit { display: inline-flex; margin: 14px 13px 0 0; }.auth-form-panel { padding: 28px 22px 25px; } }
 @media (max-width: 430px) { .topbar-avatar { display: none; }.account-button { font-size: 9px; }.auth-visual { min-height: 170px; }.auth-visual .card-kicker { margin-top: 17px; }.auth-visual h2 { font-size: 21px; } }
+
+
+/* Administrator console */
+.admin-trigger { color: #7c5b2b; border-color: #ead6ae; background: #fff9e8; }
+.admin-trigger:hover { background: #fff1c8; }
+.admin-modal { width: min(920px, 100%); max-height: min(820px, 92vh); overflow: auto; padding: 27px; border-radius: 18px; background: #fff; box-shadow: 0 30px 75px rgba(18,63,57,.25); }
+.admin-toolbar { display: flex; align-items: center; gap: 9px; margin-top: 21px; }
+.admin-create-form { display: grid; gap: 13px; margin-top: 15px; padding: 15px; border: 1px solid #dcebe1; border-radius: 12px; background: #f7fbf8; }
+.admin-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.admin-form-grid label { color: #647b74; font-size: 10px; font-weight: 700; }
+.admin-form-grid input, .admin-user-fields input { width: 100%; margin-top: 6px; padding: 9px 10px; color: var(--ink); border: 1px solid #dfe9e2; border-radius: 8px; outline: 0; background: #fff; font-size: 11px; }
+.admin-form-grid input:focus, .admin-user-fields input:focus { border-color: #8fbba0; box-shadow: 0 0 0 3px rgba(143,187,160,.13); }
+.admin-check { display: flex; align-items: center; gap: 7px; color: #647b74; font-size: 10px; }
+.admin-check input { accent-color: var(--green); }
+.admin-list { display: grid; gap: 9px; margin-top: 17px; }
+.admin-user-row { display: grid; grid-template-columns: 1fr 1.1fr; gap: 11px 16px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.admin-user-row.is-disabled { opacity: .65; background: #fafcfb; }
+.admin-user-main { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.admin-user-main strong, .admin-user-main span { display: block; }
+.admin-user-main strong { color: var(--ink); font-size: 12px; }
+.admin-user-main span { margin-top: 4px; color: #8b9d96; font-size: 9px; }
+.admin-avatar { display: grid; place-items: center; width: 31px; height: 31px; color: #fff; border-radius: 10px; background: var(--green); font-size: 12px; font-weight: 800; }
+.admin-user-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.admin-user-fields input { margin-top: 0; }
+.admin-user-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px 15px; padding-top: 9px; border-top: 1px solid #edf3ee; }
+.admin-user-actions .text-button { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; }
+.admin-user-actions .text-button:disabled { opacity: .4; cursor: not-allowed; }
+.admin-empty { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 100px; color: #8b9d96; border: 1px dashed #d4e3d8; border-radius: 12px; font-size: 11px; }
+.spin { animation: admin-spin .9s linear infinite; }
+@keyframes admin-spin { to { transform: rotate(360deg); } }
+@media (max-width: 680px) { .admin-modal { padding: 20px; }.admin-form-grid { grid-template-columns: 1fr; }.admin-user-row { grid-template-columns: 1fr; }.admin-user-fields { grid-template-columns: 1fr; }.admin-user-actions { grid-column: auto; } }
