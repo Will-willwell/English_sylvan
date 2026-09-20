@@ -6,3 +6,5 @@ work/
 .env.*
 !.env.example
 *.pdf
+
+tmp_pdf_paths.txt

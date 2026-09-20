@@ -34,6 +34,7 @@ import { AccountPanel } from "./components/AccountPanel";
 import { PwaInstallButton } from "./components/PwaInstallButton";
 import { VoicePicker } from "./components/VoicePicker";
 import { ReviewPanel } from "./components/ReviewPanel";
+import { BookReaderPanel } from "./components/BookReaderPanel";
 import { CollapsibleSection } from "./components/CollapsibleSection";
 import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 import { recordActivity } from "./lib/activity";
@@ -108,6 +109,7 @@ function App() {
   const [savedProgress, setSavedProgress] = useState<Record<number, number>>(() => readProgress(STORAGE_KEY));
   const [reviewStates, setReviewStates] = useState<Record<number, ReviewState>>(() => readReviewStates(reviewStorageKey()));
   const [showAudioPanel, setShowAudioPanel] = useState(false);
+  const [showBookReader, setShowBookReader] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
@@ -494,6 +496,7 @@ function App() {
         </div>
       </main>
       {showAudioPanel && <AudioPanel onClose={() => setShowAudioPanel(false)} />}
+      {showBookReader && <BookReaderPanel onClose={() => setShowBookReader(false)} />}
       {showAdminPanel && isAdmin && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
       {showAccountPanel && authUser && <AccountPanel username={userToUsername(authUser) || "Learner"} onClose={() => setShowAccountPanel(false)} onSignOut={signOut} />}
       {showAuthModal && <AuthModal required={isSupabaseConfigured && !authUser} onClose={() => setShowAuthModal(false)} />}
