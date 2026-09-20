@@ -45,17 +45,17 @@ function normalizedUsername(value: unknown) {
 async function requireAdmin(context: PagesContext, client: SupabaseClient) {
   const authorization = context.request.headers.get("authorization") || "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
-  if (!token) return { error: json({ error: "??????????????" }, 401) };
+  if (!token) return { error: json({ error: "Your session has expired. Sign in again." }, 401) };
 
   const { data: authData, error: authError } = await client.auth.getUser(token);
-  if (authError || !authData.user) return { error: json({ error: "??????????????" }, 401) };
+  if (authError || !authData.user) return { error: json({ error: "Your session has expired. Sign in again." }, 401) };
 
   const { data: profile, error: profileError } = await client
     .from("profiles")
     .select("is_admin")
     .eq("id", authData.user.id)
     .maybeSingle();
-  if (profileError || !profile?.is_admin) return { error: json({ error: "????????" }, 403) };
+  if (profileError || !profile?.is_admin) return { error: json({ error: "Administrator access is required." }, 403) };
 
   return { user: authData.user };
 }
@@ -113,8 +113,8 @@ async function handlePost(context: PagesContext, client: SupabaseClient) {
   const displayName = typeof body.display_name === "string" ? body.display_name.trim() : username;
   const isAdmin = body.is_admin === true;
 
-  if (!USERNAME_PATTERN.test(username)) return json({ error: "?????? 3-32 ???????????????????" }, 400);
-  if (password.length < 6) return json({ error: "?????? 6 ????" }, 400);
+  if (!USERNAME_PATTERN.test(username)) return json({ error: "Username must be 3-32 characters and use lowercase letters, numbers, dot, underscore, or hyphen." }, 400);
+  if (password.length < 6) return json({ error: "Password must be at least 6 characters." }, 400);
 
   const { error: allowlistError } = await client.from("allowed_usernames").upsert({
     username, display_name: displayName || username, is_active: true,
@@ -139,22 +139,22 @@ async function handlePatch(context: PagesContext, client: SupabaseClient) {
   if (auth.error) return auth.error;
   const body = await context.request.json().catch(() => ({}));
   const username = normalizedUsername(body.username);
-  if (!USERNAME_PATTERN.test(username)) return json({ error: "???????" }, 400);
+  if (!USERNAME_PATTERN.test(username)) return json({ error: "Invalid username." }, 400);
   if (username === normalizedUsername(auth.user.user_metadata?.username) && body.is_active === false) {
-    return json({ error: "???????????????" }, 400);
+    return json({ error: "You cannot disable the administrator account you are currently using." }, 400);
   }
 
   const { data: users, error: listError } = await client.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (listError) return json({ error: listError.message }, 400);
   const authUser = users.users.find((user) => user.email?.toLowerCase() === usernameEmail(username));
-  if (!authUser) return json({ error: "?????? Auth ???" }, 404);
+  if (!authUser) return json({ error: "The matching Auth user was not found." }, 404);
 
   const displayName = typeof body.display_name === "string" ? body.display_name.trim() : undefined;
   const password = typeof body.password === "string" ? body.password : undefined;
   const userMetadata = displayName === undefined ? undefined : { ...authUser.user_metadata, username, display_name: displayName || username };
   const authUpdate: Record<string, unknown> = {};
   if (password !== undefined) {
-    if (password.length < 6) return json({ error: "?????? 6 ????" }, 400);
+    if (password.length < 6) return json({ error: "Password must be at least 6 characters." }, 400);
     authUpdate.password = password;
   }
   if (userMetadata) authUpdate.user_metadata = userMetadata;

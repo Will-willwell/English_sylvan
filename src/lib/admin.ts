@@ -13,10 +13,11 @@ export type AdminUser = {
 type AdminResponse = { users?: AdminUser[]; user?: { username: string; user_id: string }; ok?: boolean; error?: string };
 
 async function adminRequest(path: string, init: RequestInit = {}) {
-  if (!supabase) throw new Error("Supabase ?????????");
+  if (!supabase) throw new Error("Supabase is not configured in this build.");
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  if (!token) throw new Error("??????????????");
+  if (!token) throw new Error("Your session has expired. Sign in again.");
+
   const response = await fetch(path, {
     ...init,
     headers: {
@@ -26,7 +27,13 @@ async function adminRequest(path: string, init: RequestInit = {}) {
     },
   });
   const payload = (await response.json().catch(() => ({}))) as AdminResponse;
-  if (!response.ok) throw new Error(payload.error || "????????");
+  if (!response.ok) {
+    const detail = payload.error || `HTTP ${response.status}`;
+    if (response.status === 404) throw new Error(`Admin API was not deployed at ${path}. Push the latest code and wait for Cloudflare to finish deploying.`);
+    if (response.status === 403) throw new Error("This account is not an administrator. Set profiles.is_admin = true in Supabase.");
+    if (response.status >= 500) throw new Error(`Admin API configuration error: ${detail}. Check SUPABASE_URL and SUPABASE_SECRET_KEY in Cloudflare Pages.`);
+    throw new Error(detail);
+  }
   return payload;
 }
 
