@@ -492,3 +492,23 @@ body { overflow-x: hidden; overscroll-behavior-y: none; }
   .module-page-container { padding-top: 4px; }
   .module-page-container .module-learning-header { padding-top: 4px; }
 }
+
+
+/* Compact module header: the Unit switcher is the primary navigation for learning. */
+.module-page-container { padding-top: 0; }
+.module-page-container .module-learning-view { padding-top: 0; }
+.module-page-container .module-learning-header { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; padding: 4px 0 8px; }
+.module-page-container .back-to-overview { margin-bottom: 7px; }
+.module-page-container .module-learning-header .eyebrow { font-size: 9px; }
+.module-page-container .module-learning-header h1 { margin-top: 4px; font-size: clamp(25px, 3vw, 36px); }
+.module-page-container .module-learning-header p { margin-top: 5px; font-size: 10px; }
+.module-page-container .module-learning-count { width: 62px; height: 62px; border-radius: 15px; }
+.module-page-container .module-learning-count strong { font-size: 21px; }
+.module-page-container .module-unit-switcher { margin: 0 0 10px; padding: 5px; border-radius: 12px; }
+.module-page-container .module-unit-switch { padding: 8px 9px; }
+.module-page-container .module-unit-number { width: 24px; height: 24px; }
+@media (max-width: 760px) {
+  .module-page-container .module-learning-header { grid-template-columns: 1fr auto; padding-top: 2px; }
+  .module-page-container .module-learning-header p { display: none; }
+  .module-page-container .module-learning-count { width: 52px; height: 52px; }
+}
