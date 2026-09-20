@@ -140,3 +140,9 @@ Run [`supabase/session.sql`](./supabase/session.sql) once in Supabase SQL Editor
 The learning page now includes a lightweight forgetting-curve review queue. A completed Unit is scheduled for review, and the learner can rate it as Again, Hard, Good, or Easy; intervals grow as recall becomes more stable. Review state is currently stored per account in browser storage so it remains separate between users on the same device.
 
 Long Unit content is divided into collapsible sections: key expressions, chapter practice, and optional audio. This keeps the mobile page shorter while preserving one-tap access to the full lesson.
+
+## PDF source and pronunciation
+
+The three supplied PDFs are treated as private source material. The site keeps the original 20-Unit learning structure and original lesson arrangements, but does not publish a verbatim scan or a full-book transcription. Public redistribution of the complete book text or a complete audiobook requires the relevant rights.
+
+The pronunciation controls use the browser's available English voices and let the learner choose an `en-US`, `en-GB`, or other installed English voice. These are synthesized voices, not book audio recordings. To add licensed recordings, place the authorized MP3 files under `public/audio/` and wire them to the matching Unit; do not upload third-party or unlicensed book audio.

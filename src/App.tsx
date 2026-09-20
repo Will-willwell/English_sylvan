@@ -32,12 +32,14 @@ import { AuthModal } from "./components/AuthModal";
 import { AdminPanel } from "./components/AdminPanel";
 import { AccountPanel } from "./components/AccountPanel";
 import { PwaInstallButton } from "./components/PwaInstallButton";
+import { VoicePicker } from "./components/VoicePicker";
 import { ReviewPanel } from "./components/ReviewPanel";
 import { CollapsibleSection } from "./components/CollapsibleSection";
 import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 import { recordActivity } from "./lib/activity";
 import { applyReview, createInitialReview, readReviewStates, reviewStorageKey, type ReviewRating, type ReviewState } from "./lib/review";
 import { claimDeviceSession, checkDeviceSession, releaseDeviceSession } from "./lib/session";
+import { speakEnglish } from "./lib/speech";
 
 const STORAGE_KEY = "business-speaking-progress-v1";
 
@@ -455,7 +457,7 @@ function App() {
         <header className="topbar">
           <button className="mobile-menu-trigger" onClick={() => setShowMobileMenu(true)} aria-label="打开菜单"><Waves size={20} /></button>
           <div className="breadcrumb"><span>学习总览</span><ChevronRight size={15} /><strong>Chapter {activeUnit.id}</strong></div>
-          <div className="topbar-actions"><SyncStatus status={syncStatus} deviceStatus={deviceStatus} /><PwaInstallButton /><button className="help-button"><CircleHelp size={17} />Help</button>{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
+          <div className="topbar-actions"><SyncStatus status={syncStatus} deviceStatus={deviceStatus} /><VoicePicker /><PwaInstallButton /><button className="help-button"><CircleHelp size={17} />Help</button>{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
         </header>
 
         <div className="page-container">
@@ -582,10 +584,7 @@ function compareSpeech(target: string, transcript: string) {
 }
 
 function speak(text: string) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "en-US"; utterance.rate = 0.86; window.speechSynthesis.speak(utterance);
+  speakEnglish(text);
 }
 
 export default App;

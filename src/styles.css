@@ -381,3 +381,7 @@ body { overflow-x: hidden; overscroll-behavior-y: none; }
   .review-actions button { flex: 1; justify-content: center; }
 }
 @media (max-width: 430px) { .review-card-heading p { font-size: 10px; }.review-method { display: none !important; }.review-summary { justify-content: space-between; }.collapsible-content { padding: 0 10px 10px; } }
+
+.voice-picker { display: inline-flex; align-items: center; gap: 5px; max-width: 170px; padding: 6px 8px; color: var(--green); border: 1px solid #cfe2d4; border-radius: 8px; background: #eef7f0; }
+.voice-picker select { max-width: 130px; color: var(--green-dark); border: 0; outline: 0; background: transparent; font-size: 9px; font-weight: 800; }
+@media (max-width: 760px) { .voice-picker { max-width: 32px; padding: 8px; }.voice-picker select { display: none; } }
