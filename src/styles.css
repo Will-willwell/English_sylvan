@@ -454,3 +454,16 @@ body { overflow-x: hidden; overscroll-behavior-y: none; }
 .module-tabs { margin-bottom: 10px; }
 @media (max-width: 850px) { .module-learning-layout { grid-template-columns: 1fr; }.module-unit-list { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }.module-unit-item { min-height: 58px; } }
 @media (max-width: 520px) { .module-learning-header { align-items: flex-start; }.module-learning-header h1 { font-size: 25px; }.module-learning-count { width: 58px; height: 58px; border-radius: 14px; }.module-learning-count strong { font-size: 20px; }.module-learning-layout { gap: 10px; }.module-unit-list { grid-template-columns: 1fr; }.module-unit-item { padding: 10px; } }
+
+
+/* Top Unit switcher for focused module learning */
+.module-unit-switcher { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 6px 0 16px; padding: 7px; border: 1px solid var(--line); border-radius: 14px; background: #eef5ef; }
+.module-unit-switch { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 10px; color: #71867e; border: 1px solid transparent; border-radius: 10px; background: transparent; text-align: left; }
+.module-unit-switch:hover { color: var(--green-dark); background: #f8fcf8; }
+.module-unit-switch.active { color: var(--green-dark); border-color: #b7d7c0; background: #fff; box-shadow: 0 4px 12px rgba(35,73,65,.06); }
+.module-unit-switch > span:nth-child(2) { min-width: 0; flex: 1; }
+.module-unit-switch strong, .module-unit-switch small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.module-unit-switch strong { font-size: 10px; }
+.module-unit-switch small { margin-top: 4px; color: #8b9d96; font-size: 8px; }
+@media (max-width: 850px) { .module-unit-switcher { display: flex; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; }.module-unit-switch { min-width: 190px; scroll-snap-align: start; } }
+@media (max-width: 520px) { .module-unit-switcher { margin-right: -2px; margin-left: -2px; padding: 5px; }.module-unit-switch { min-width: 168px; padding: 9px; }.module-learning-header { padding-top: 12px; } }
