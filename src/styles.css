@@ -385,3 +385,28 @@ body { overflow-x: hidden; overscroll-behavior-y: none; }
 .voice-picker { display: inline-flex; align-items: center; gap: 5px; max-width: 170px; padding: 6px 8px; color: var(--green); border: 1px solid #cfe2d4; border-radius: 8px; background: #eef7f0; }
 .voice-picker select { max-width: 130px; color: var(--green-dark); border: 0; outline: 0; background: transparent; font-size: 9px; font-weight: 800; }
 @media (max-width: 760px) { .voice-picker { max-width: 32px; padding: 8px; }.voice-picker select { display: none; } }
+
+
+/* Dashboard module layout */
+.dashboard-module { margin-top: 18px; scroll-margin-top: 86px; }
+.dashboard-module-trigger { display: flex; align-items: center; gap: 10px; width: 100%; padding: 13px 15px; color: var(--ink); border: 1px solid var(--line); border-radius: 13px; background: #fff; text-align: left; box-shadow: 0 5px 18px rgba(35,73,65,.03); }
+.dashboard-module-trigger:hover { border-color: #b9d8c2; background: #fbfefb; }
+.dashboard-module-icon { display: grid; place-items: center; width: 31px; height: 31px; flex: 0 0 auto; color: var(--green); border-radius: 9px; background: var(--mint); }
+.dashboard-module-copy { min-width: 0; flex: 1; }
+.dashboard-module-copy strong, .dashboard-module-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-module-copy strong { font-size: 12px; }
+.dashboard-module-copy small { margin-top: 4px; color: #8b9d96; font-size: 9px; }
+.dashboard-module-trigger > svg { color: #8fa29a; transition: transform .2s ease; }
+.dashboard-module.is-open > .dashboard-module-trigger > svg { transform: rotate(90deg); }
+.dashboard-module-content { padding-top: 2px; }
+.dashboard-module-content > .review-card { margin-top: 12px; }
+.dashboard-module-content > .workspace-grid { margin-top: 12px; }
+.dashboard-module-content > .curriculum-section { margin-top: 12px; padding: 0 2px; }
+.mini-goal { width: 100%; color: inherit; text-align: left; cursor: pointer; }
+.mini-goal > svg { margin-left: auto; color: #9bb0aa; }
+.mini-goal:hover { border-color: #e3d9ac; background: #fff8dc; transform: translateY(-1px); }
+@media (max-width: 760px) {
+  .dashboard-module { margin-top: 13px; scroll-margin-top: 70px; }
+  .dashboard-module-trigger { min-height: 59px; padding: 11px 12px; }
+  .dashboard-module-content > .curriculum-section { padding: 0; }
+}

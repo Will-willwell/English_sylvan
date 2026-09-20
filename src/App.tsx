@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   ArrowUpRight,
@@ -115,6 +115,7 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showAccountPanel, setShowAccountPanel] = useState(false);
+  const [openModule, setOpenModule] = useState<"review" | "lesson" | "curriculum">("lesson");
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "offline" | "error">("idle");
   const [deviceStatus, setDeviceStatus] = useState<"checking" | "active" | "offline" | "revoked" | "error">("checking");
   const progressLoadRef = useRef(0);
@@ -400,6 +401,7 @@ function App() {
   }
 
   function startPractice() {
+    setOpenModule("lesson");
     setActiveTab("practice");
     if (authUser) {
       void recordActivity({ userId: authUser.id, activityType: "practice_started", unitId: activeUnit.id });
@@ -407,6 +409,7 @@ function App() {
   }
 
   function startDialogue() {
+    setOpenModule("lesson");
     setActiveTab("dialogue");
     if (authUser) {
       void recordActivity({ userId: authUser.id, activityType: "dialogue_started", unitId: activeUnit.id });
@@ -414,6 +417,7 @@ function App() {
   }
 
   function selectUnit(unit: Unit) {
+    setOpenModule("lesson");
     setActiveUnitId(unit.id);
     setActiveTab("learn");
     setShowMobileMenu(false);
@@ -428,6 +432,14 @@ function App() {
     document.getElementById("lesson-workspace")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  const dueReviewCount = allUnits.filter((unit) => (savedProgress[unit.id] ?? unit.progress) > 0 && (!reviewStates[unit.id] || new Date(reviewStates[unit.id].nextReviewAt).getTime() <= Date.now())).length;
+
+  function openModuleAndScroll(module: "review" | "lesson" | "curriculum") {
+    setOpenModule(module);
+    window.setTimeout(() => document.getElementById(`${module}-module`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    setShowMobileMenu(false);
+  }
+
   return (
     <div className="app-shell">
       <aside className={`sidebar ${showMobileMenu ? "is-open" : ""}`}>
@@ -438,7 +450,7 @@ function App() {
         </div>
         <nav className="primary-nav" aria-label="主导航">
           <button className="nav-item active"><LayoutDashboard size={18} />学习总览</button>
-          <button className="nav-item" onClick={() => document.getElementById("curriculum")?.scrollIntoView({ behavior: "smooth" })}><BookOpen size={18} />课程章节</button>
+          <button className="nav-item" onClick={() => openModuleAndScroll("curriculum")}><BookOpen size={18} />课程章节</button>
           <button className="nav-item" onClick={() => setShowAudioPanel(true)}><Headphones size={18} />听力资源</button>
         </nav>
         <div className="sidebar-divider" />
@@ -477,19 +489,25 @@ function App() {
             <div className="section-card quick-card"><div className="quick-card-icon"><Mic size={19} /></div><div><div className="card-kicker">快速练习</div><h2>练一句就好</h2><p>用 60 秒复习当前章节的重点表达</p></div><button className="round-arrow" onClick={startPractice}><ArrowUpRight size={18} /></button></div>
           </section>
 
-          <ReviewPanel units={allUnits} progress={savedProgress} states={reviewStates} onSelect={selectUnit} onRate={rateReview} />
+          <DashboardModule id="review-module" title="Spaced review" subtitle={dueReviewCount > 0 ? `${dueReviewCount} Units due today` : "Your review queue is clear"} icon={<Sparkles size={17} />} open={openModule === "review"} onToggle={() => setOpenModule((value) => value === "review" ? "lesson" : "review")}>
+            <ReviewPanel units={allUnits} progress={savedProgress} states={reviewStates} onSelect={selectUnit} onRate={rateReview} />
+          </DashboardModule>
 
-          <section id="lesson-workspace" className="workspace-grid">
-            <div className="content-column">
-              <div className="tabs-row"><div className="tabs"><button className={activeTab === "learn" ? "active" : ""} onClick={() => setActiveTab("learn")}>Learn</button><button className={activeTab === "practice" ? "active" : ""} onClick={startPractice}>Practice</button><button className={activeTab === "dialogue" ? "active" : ""} onClick={startDialogue}>Dialogue</button></div><span className="source-badge"><span />20 Units loaded</span></div>
-              {activeTab === "learn" && <LearnPanel unit={activeUnit} lesson={lesson} onSpeak={() => speak(activeUnit.title)} onProgress={updateUnitProgress} onPractice={startPractice} />}
-              {activeTab === "practice" && <PracticePanel unit={activeUnit} target={lesson.expressions[0].english} userId={authUser?.id} onProgress={updateUnitProgress} />}
-              {activeTab === "dialogue" && <DialoguePanel unit={activeUnit} lesson={lesson} userId={authUser?.id} onProgress={updateUnitProgress} />}
-            </div>
-            <aside className="right-column"><div className="section-card pronunciation-card"><div className="card-title-row"><div><div className="card-kicker">当前章节发音焦点</div><h3>{activeUnit.id === 1 ? "连读 · Connected speech" : "商务语气 · Professional tone"}</h3></div><Volume2 size={19} className="green-icon" /></div><div className="pronunciation-example"><span>{lesson.expressions[0].english}</span><button onClick={() => speak(lesson.expressions[0].english)} aria-label="播放示范"><Volume2 size={16} /></button></div><p>先听示范，再录下自己的版本。识别结果用于辅助纠正完整度、节奏与重点表达，不等同于专业发音测评。</p><button className="outline-button" onClick={() => setActiveTab("practice")}>开始模仿 <ChevronRight size={15} /></button></div><div className="section-card resource-card"><div className="card-title-row"><div><div className="card-kicker">学习资料</div><h3>听力资源状态</h3></div><Headphones size={19} className="green-icon" /></div><div className="resource-status"><span className="status-dot warning" /><div><strong>官方入口已确认</strong><span>原书标注 included CD；本站不转载音频文件</span></div></div><button className="text-button" onClick={() => setShowAudioPanel(true)}>查看来源与说明 <ArrowUpRight size={15} /></button></div></aside>
-          </section>
+          <DashboardModule id="lesson-module" title={`Current Unit ${activeUnit.id}`} subtitle={`${activeUnit.title} ? ${activeTab === "learn" ? "Learn" : activeTab === "practice" ? "Practice" : "Dialogue"}`} icon={<BookOpen size={17} />} open={openModule === "lesson"} onToggle={() => setOpenModule((value) => value === "lesson" ? "review" : "lesson")}>
+            <section id="lesson-workspace" className="workspace-grid">
+              <div className="content-column">
+                <div className="tabs-row"><div className="tabs"><button className={activeTab === "learn" ? "active" : ""} onClick={() => setActiveTab("learn")}>Learn</button><button className={activeTab === "practice" ? "active" : ""} onClick={startPractice}>Practice</button><button className={activeTab === "dialogue" ? "active" : ""} onClick={startDialogue}>Dialogue</button></div><span className="source-badge"><span />20 Units loaded</span></div>
+                {activeTab === "learn" && <LearnPanel unit={activeUnit} lesson={lesson} onSpeak={() => speak(activeUnit.title)} onProgress={updateUnitProgress} onPractice={startPractice} />}
+                {activeTab === "practice" && <PracticePanel unit={activeUnit} target={lesson.expressions[0].english} userId={authUser?.id} onProgress={updateUnitProgress} />}
+                {activeTab === "dialogue" && <DialoguePanel unit={activeUnit} lesson={lesson} userId={authUser?.id} onProgress={updateUnitProgress} />}
+              </div>
+              <aside className="right-column"><div className="section-card pronunciation-card"><div className="card-title-row"><div><div className="card-kicker">Pronunciation focus</div><h3>{activeUnit.id === 1 ? "Connected speech" : "Professional tone"}</h3></div><Volume2 size={19} className="green-icon" /></div><div className="pronunciation-example"><span>{lesson.expressions[0].english}</span><button onClick={() => speak(lesson.expressions[0].english)} aria-label="Play example"><Volume2 size={16} /></button></div><p>Listen to the example, then record your version. Feedback is practice support rather than a professional assessment.</p><button className="outline-button" onClick={startPractice}>Start shadowing <ChevronRight size={15} /></button></div><div className="section-card resource-card"><div className="card-title-row"><div><div className="card-kicker">Learning resources</div><h3>Audio resources</h3></div><Headphones size={19} className="green-icon" /></div><div className="resource-status"><span className="status-dot warning" /><div><strong>Official source available</strong><span>The site does not redistribute book audio.</span></div></div><button className="text-button" onClick={() => setShowAudioPanel(true)}>View sources <ArrowUpRight size={15} /></button></div></aside>
+            </section>
+          </DashboardModule>
 
-          <section id="curriculum" className="curriculum-section"><div className="section-heading-row"><div><div className="eyebrow">COURSE MAP · 课程地图</div><h2>20 个真实商务场景</h2><p>从建立联系到面试沟通，重点表达、互动脚本和练习已按章节录入。</p></div><div className="search-box"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索章节或主题" /></div></div><div className="unit-list">{visibleUnits.map((unit) => <UnitListItem key={unit.id} unit={unit} active={unit.id === activeUnitId} progress={savedProgress[unit.id] ?? unit.progress} onClick={() => selectUnit(unit)} />)}</div></section>
+          <DashboardModule id="curriculum-module" title="Course map" subtitle="20 business scenarios" icon={<LayoutDashboard size={17} />} open={openModule === "curriculum"} onToggle={() => setOpenModule((value) => value === "curriculum" ? "lesson" : "curriculum")}>
+            <section id="curriculum" className="curriculum-section"><div className="section-heading-row"><div><div className="eyebrow">COURSE MAP</div><h2>20 business scenarios</h2><p>Search the curriculum and choose the next Unit you want to practice.</p></div><div className="search-box"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Units or topics" /></div></div><div className="unit-list">{visibleUnits.map((unit) => <UnitListItem key={unit.id} unit={unit} active={unit.id === activeUnitId} progress={savedProgress[unit.id] ?? unit.progress} onClick={() => selectUnit(unit)} />)}</div></section>
+          </DashboardModule>
           <footer className="site-footer"><span>© 2026 LingoDesk · 个人学习工具原型</span><span>仅用于个人学习；版权内容不在本站重新分发。</span></footer>
         </div>
       </main>
@@ -499,6 +517,13 @@ function App() {
       {showAuthModal && <AuthModal required={isSupabaseConfigured && !authUser} onClose={() => setShowAuthModal(false)} />}
     </div>
   );
+}
+
+function DashboardModule({ id, title, subtitle, icon, open, onToggle, children }: { id: string; title: string; subtitle: string; icon: ReactNode; open: boolean; onToggle: () => void; children: ReactNode }) {
+  return <section id={id} className={`dashboard-module ${open ? "is-open" : "is-collapsed"}`}>
+    <button className="dashboard-module-trigger" onClick={onToggle} aria-expanded={open}><span className="dashboard-module-icon">{icon}</span><span className="dashboard-module-copy"><strong>{title}</strong><small>{subtitle}</small></span><ChevronRight size={17} /></button>
+    {open && <div className="dashboard-module-content">{children}</div>}
+  </section>;
 }
 
 function SyncStatus({ status, deviceStatus }: { status: "idle" | "syncing" | "synced" | "offline" | "error"; deviceStatus: "checking" | "active" | "offline" | "revoked" | "error" }) {
