@@ -2,9 +2,15 @@ const VOICE_KEY = "lingodesk-voice-v1";
 
 export type SpeechVoice = { name: string; lang: string; voiceURI: string };
 
+function speechApi() {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+  return window.speechSynthesis;
+}
+
 export function getEnglishVoices(): SpeechVoice[] {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return [];
-  return window.speechSynthesis.getVoices()
+  const synthesis = speechApi();
+  if (!synthesis) return [];
+  return synthesis.getVoices()
     .filter((voice) => /^en(-|_)/i.test(voice.lang))
     .map((voice) => ({ name: voice.name, lang: voice.lang, voiceURI: voice.voiceURI }))
     .sort((a, b) => {
@@ -21,19 +27,40 @@ export function setSelectedVoiceUri(uri: string) {
   localStorage.setItem(VOICE_KEY, uri);
 }
 
+export function speechSupported() {
+  return Boolean(speechApi() && typeof SpeechSynthesisUtterance !== "undefined");
+}
+
+export function resumeSpeech() {
+  speechApi()?.resume();
+}
+
 export function speakEnglish(text: string) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
+  const synthesis = speechApi();
+  if (!synthesis || typeof SpeechSynthesisUtterance === "undefined") return false;
+
+  synthesis.cancel();
+  synthesis.resume();
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "en-US";
   utterance.rate = 0.86;
   utterance.pitch = 1;
+  const nativeVoices = synthesis.getVoices();
   const selected = getSelectedVoiceUri();
-  const voice = getEnglishVoices().find((candidate) => candidate.voiceURI === selected) || getEnglishVoices()[0];
-  if (voice) {
-    const nativeVoice = window.speechSynthesis.getVoices().find((candidate) => candidate.voiceURI === voice.voiceURI);
-    if (nativeVoice) utterance.voice = nativeVoice;
-    utterance.lang = voice.lang;
+  const nativeVoice = nativeVoices.find((voice) => voice.voiceURI === selected)
+    || nativeVoices.find((voice) => /^en(-|_)/i.test(voice.lang) && /^en(-|_)us/i.test(voice.lang))
+    || nativeVoices.find((voice) => /^en(-|_)/i.test(voice.lang));
+  if (nativeVoice) {
+    utterance.voice = nativeVoice;
+    utterance.lang = nativeVoice.lang;
   }
-  window.speechSynthesis.speak(utterance);
+
+  // iOS Safari can return an empty voice list until after a user gesture.
+  // Speaking after a short task-queue turn lets the engine finish resuming.
+  window.setTimeout(() => {
+    synthesis.resume();
+    synthesis.speak(utterance);
+  }, 0);
+  return true;
 }

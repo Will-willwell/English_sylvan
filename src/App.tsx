@@ -32,6 +32,7 @@ import { AdminPanel } from "./components/AdminPanel";
 import { AccountPanel } from "./components/AccountPanel";
 import { PwaInstallButton } from "./components/PwaInstallButton";
 import { VoicePicker } from "./components/VoicePicker";
+import { AudioTestButton } from "./components/AudioTestButton";
 import { ReviewPanel } from "./components/ReviewPanel";
 import { CollapsibleSection } from "./components/CollapsibleSection";
 import { lessonEnrichment } from "./data/lessonEnrichment";
@@ -481,7 +482,7 @@ function App() {
         <header className="topbar">
           <button className="mobile-menu-trigger" onClick={() => setShowMobileMenu(true)} aria-label="打开菜单"><Waves size={20} /></button>
           <div className="breadcrumb"><span>学习总览</span><ChevronRight size={15} /><strong>Chapter {activeUnit.id}</strong></div>
-          <div className="topbar-actions"><SyncStatus status={syncStatus} deviceStatus={deviceStatus} /><VoicePicker /><PwaInstallButton />{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
+          <div className="topbar-actions"><SyncStatus status={syncStatus} deviceStatus={deviceStatus} /><AudioTestButton /><VoicePicker /><PwaInstallButton />{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
         </header>
 
         <div className={`page-container ${viewMode === "overview" ? "overview-page-container" : "module-page-container"}`}>

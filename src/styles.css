@@ -512,3 +512,7 @@ body { overflow-x: hidden; overscroll-behavior-y: none; }
   .module-page-container .module-learning-header p { display: none; }
   .module-page-container .module-learning-count { width: 52px; height: 52px; }
 }
+
+.audio-test-button { display: inline-flex; align-items: center; gap: 5px; padding: 7px 9px; color: var(--green); border: 1px solid #cfe2d4; border-radius: 8px; background: #eef7f0; font-size: 9px; font-weight: 800; }
+.audio-test-button:hover, .audio-test-button.tested { background: #dff1e7; }
+@media (max-width: 760px) { .audio-test-button { padding: 8px; font-size: 0; }.audio-test-button span { display: none; } }
