@@ -116,6 +116,7 @@ function App() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showAccountPanel, setShowAccountPanel] = useState(false);
   const [openModule, setOpenModule] = useState<"review" | "lesson" | "curriculum">("lesson");
+  const [viewMode, setViewMode] = useState<"overview" | "module">("overview");
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "offline" | "error">("idle");
   const [deviceStatus, setDeviceStatus] = useState<"checking" | "active" | "offline" | "revoked" | "error">("checking");
   const progressLoadRef = useRef(0);
@@ -417,6 +418,7 @@ function App() {
   }
 
   function selectUnit(unit: Unit) {
+    setViewMode("module");
     setOpenModule("lesson");
     setActiveUnitId(unit.id);
     setActiveTab("learn");
@@ -430,6 +432,16 @@ function App() {
       });
     }
     document.getElementById("lesson-workspace")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function openLearningModule(section: string) {
+    const firstUnit = section === "all" ? allUnits[0] : allUnits.find((unit) => unit.section === section);
+    setActiveSection(section);
+    if (firstUnit) setActiveUnitId(firstUnit.id);
+    setActiveTab("learn");
+    setViewMode("module");
+    setShowMobileMenu(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   const dueReviewCount = allUnits.filter((unit) => (savedProgress[unit.id] ?? unit.progress) > 0 && (!reviewStates[unit.id] || new Date(reviewStates[unit.id].nextReviewAt).getTime() <= Date.now())).length;
@@ -456,8 +468,8 @@ function App() {
         <div className="sidebar-divider" />
         <div className="sidebar-heading">按模块学习</div>
         <div className="section-nav">
-          <button className={`section-item ${activeSection === "all" ? "selected" : ""}`} onClick={() => setActiveSection("all")}><span className="section-dot all-dot" />全部章节 <span className="section-count">20</span></button>
-          {sections.map((section) => <button key={section.id} className={`section-item ${activeSection === section.title ? "selected" : ""}`} onClick={() => setActiveSection(section.title)}><span className="section-dot" />{section.title} <span className="section-count">4</span></button>)}
+          <button className={`section-item ${activeSection === "all" ? "selected" : ""}`} onClick={() => openLearningModule("all")}><span className="section-dot all-dot" />全部章节 <span className="section-count">20</span></button>
+          {sections.map((section) => <button key={section.id} className={`section-item ${activeSection === section.title ? "selected" : ""}`} onClick={() => openLearningModule(section.title)}><span className="section-dot" />{section.title} <span className="section-count">4</span></button>)}
         </div>
         <div className="sidebar-footer">
           <div className="mini-goal"><div className="mini-goal-icon"><Sparkles size={16} /></div><div><strong>今日目标</strong><span>完成 1 个口语练习</span></div></div>
@@ -473,6 +485,7 @@ function App() {
         </header>
 
         <div className="page-container">
+          {viewMode === "overview" ? <>
           <section className="hero-section">
             <div>
               <div className="eyebrow"><span className="eyebrow-dot" />你的商务英语口语路径</div>
@@ -493,7 +506,7 @@ function App() {
             <ReviewPanel units={allUnits} progress={savedProgress} states={reviewStates} onSelect={selectUnit} onRate={rateReview} />
           </DashboardModule>
 
-          <DashboardModule id="lesson-module" title={`Current Unit ${activeUnit.id}`} subtitle={`${activeUnit.title} ? ${activeTab === "learn" ? "Learn" : activeTab === "practice" ? "Practice" : "Dialogue"}`} icon={<BookOpen size={17} />} open={openModule === "lesson"} onToggle={() => setOpenModule((value) => value === "lesson" ? "review" : "lesson")}>
+          <DashboardModule id="lesson-module" title={`Current Unit ${activeUnit.id}`} subtitle={`${activeUnit.title} - ${activeTab === "learn" ? "Learn" : activeTab === "practice" ? "Practice" : "Dialogue"}`} icon={<BookOpen size={17} />} open={openModule === "lesson"} onToggle={() => setOpenModule((value) => value === "lesson" ? "review" : "lesson")}>
             <section id="lesson-workspace" className="workspace-grid">
               <div className="content-column">
                 <div className="tabs-row"><div className="tabs"><button className={activeTab === "learn" ? "active" : ""} onClick={() => setActiveTab("learn")}>Learn</button><button className={activeTab === "practice" ? "active" : ""} onClick={startPractice}>Practice</button><button className={activeTab === "dialogue" ? "active" : ""} onClick={startDialogue}>Dialogue</button></div><span className="source-badge"><span />20 Units loaded</span></div>
@@ -508,6 +521,21 @@ function App() {
           <DashboardModule id="curriculum-module" title="Course map" subtitle="20 business scenarios" icon={<LayoutDashboard size={17} />} open={openModule === "curriculum"} onToggle={() => setOpenModule((value) => value === "curriculum" ? "lesson" : "curriculum")}>
             <section id="curriculum" className="curriculum-section"><div className="section-heading-row"><div><div className="eyebrow">COURSE MAP</div><h2>20 business scenarios</h2><p>Search the curriculum and choose the next Unit you want to practice.</p></div><div className="search-box"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Units or topics" /></div></div><div className="unit-list">{visibleUnits.map((unit) => <UnitListItem key={unit.id} unit={unit} active={unit.id === activeUnitId} progress={savedProgress[unit.id] ?? unit.progress} onClick={() => selectUnit(unit)} />)}</div></section>
           </DashboardModule>
+          </> : <ModuleLearningView
+            activeUnit={activeUnit}
+            lesson={lesson}
+            activeSection={activeSection}
+            activeTab={activeTab}
+            moduleUnits={allUnits.filter((unit) => activeSection === "all" || unit.section === activeSection)}
+            savedProgress={savedProgress}
+            onBack={() => { setViewMode("overview"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            onSelectUnit={selectUnit}
+            onTabChange={setActiveTab}
+            onPractice={startPractice}
+            onProgress={updateUnitProgress}
+            userId={authUser?.id}
+            onSpeak={(text) => speak(text)}
+          />}
           <footer className="site-footer"><span>© 2026 LingoDesk · 个人学习工具原型</span><span>仅用于个人学习；版权内容不在本站重新分发。</span></footer>
         </div>
       </main>
@@ -519,6 +547,14 @@ function App() {
   );
 }
 
+function ModuleLearningView({ activeUnit, lesson, activeSection, activeTab, moduleUnits, savedProgress, onBack, onSelectUnit, onTabChange, onPractice, onProgress, userId, onSpeak }: { activeUnit: Unit; lesson: LessonContent; activeSection: string; activeTab: "learn" | "practice" | "dialogue"; moduleUnits: Unit[]; savedProgress: Record<number, number>; onBack: () => void; onSelectUnit: (unit: Unit) => void; onTabChange: (tab: "learn" | "practice" | "dialogue") => void; onPractice: () => void; onProgress: (progress: number) => void; userId?: string; onSpeak: (text: string) => void }) {
+  const sectionTitle = activeSection === "all" ? "All chapters" : activeSection;
+  return <section className="module-learning-view">
+    <div className="module-learning-header"><div><button className="back-to-overview" onClick={onBack}><ChevronRight size={15} />Back to overview</button><div className="eyebrow">LEARNING MODULE</div><h1>{sectionTitle}</h1><p>Choose a Unit below. This view keeps only the learning content for the selected module.</p></div><div className="module-learning-count"><strong>{moduleUnits.length}</strong><span>Units</span></div></div>
+    <div className="module-learning-layout"><aside className="module-unit-list">{moduleUnits.map((unit) => <button key={unit.id} className={`module-unit-item ${unit.id === activeUnit.id ? "active" : ""}`} onClick={() => onSelectUnit(unit)}><span className="module-unit-number">{String(unit.id).padStart(2, "0")}</span><span><strong>{unit.title}</strong><small>{unit.chinese} ? {savedProgress[unit.id] ?? unit.progress}%</small></span><ChevronRight size={15} /></button>)}</aside><div className="module-lesson-content"><div className="tabs-row module-tabs"><div className="tabs"><button className={activeTab === "learn" ? "active" : ""} onClick={() => onTabChange("learn")}>Learn</button><button className={activeTab === "practice" ? "active" : ""} onClick={onPractice}>Practice</button><button className={activeTab === "dialogue" ? "active" : ""} onClick={() => onTabChange("dialogue")}>Dialogue</button></div><span className="source-badge">Unit {activeUnit.id} ? {savedProgress[activeUnit.id] ?? activeUnit.progress}%</span></div>{activeTab === "learn" && <LearnPanel unit={activeUnit} lesson={lesson} onSpeak={() => onSpeak(activeUnit.title)} onProgress={onProgress} onPractice={onPractice} />}{activeTab === "practice" && <PracticePanel unit={activeUnit} target={lesson.expressions[0].english} userId={userId} onProgress={onProgress} />}{activeTab === "dialogue" && <DialoguePanel unit={activeUnit} lesson={lesson} userId={userId} onProgress={onProgress} />}</div></div>
+  </section>;
+}
+
 function DashboardModule({ id, title, subtitle, icon, open, onToggle, children }: { id: string; title: string; subtitle: string; icon: ReactNode; open: boolean; onToggle: () => void; children: ReactNode }) {
   return <section id={id} className={`dashboard-module ${open ? "is-open" : "is-collapsed"}`}>
     <button className="dashboard-module-trigger" onClick={onToggle} aria-expanded={open}><span className="dashboard-module-icon">{icon}</span><span className="dashboard-module-copy"><strong>{title}</strong><small>{subtitle}</small></span><ChevronRight size={17} /></button>
@@ -527,7 +563,7 @@ function DashboardModule({ id, title, subtitle, icon, open, onToggle, children }
 }
 
 function SyncStatus({ status, deviceStatus }: { status: "idle" | "syncing" | "synced" | "offline" | "error"; deviceStatus: "checking" | "active" | "offline" | "revoked" | "error" }) {
-  const text = deviceStatus === "revoked" ? "Signed out on another device" : deviceStatus === "offline" || status === "offline" ? "Offline ? saved locally" : status === "syncing" ? "Syncing..." : status === "error" || deviceStatus === "error" ? "Sync issue" : status === "synced" ? "Synced" : "Cloud ready";
+  const text = deviceStatus === "revoked" ? "Signed out on another device" : deviceStatus === "offline" || status === "offline" ? "Offline - saved locally" : status === "syncing" ? "Syncing..." : status === "error" || deviceStatus === "error" ? "Sync issue" : status === "synced" ? "Synced" : "Cloud ready";
   const className = deviceStatus === "revoked" || status === "error" || deviceStatus === "error" ? "error" : deviceStatus === "offline" || status === "offline" ? "offline" : status === "syncing" ? "syncing" : "synced";
   return <span className={`sync-status ${className}`} title={text}><span />{text}</span>;
 }
@@ -540,14 +576,14 @@ function LearnPanel({ unit, lesson, onSpeak, onProgress, onPractice }: { unit: U
   const toggle = (section: "expressions" | "coach" | "exercise" | "audio") => setOpenSection((current) => current === section ? "expressions" : section);
 
   return <div className="section-card learn-panel">
-    <div className="panel-heading"><div><div className="card-kicker">UNIT {String(unit.id).padStart(2, "0")} ? {unit.title.toUpperCase()}</div><h2>{unit.chinese}: Make the scenario clear</h2></div><button className="round-play" onClick={onSpeak}><Volume2 size={19} /></button></div>
+    <div className="panel-heading"><div><div className="card-kicker">UNIT {String(unit.id).padStart(2, "0")} - {unit.title.toUpperCase()}</div><h2>{unit.chinese}: Make the scenario clear</h2></div><button className="round-play" onClick={onSpeak}><Volume2 size={19} /></button></div>
     <div className="lesson-intro"><div className="lesson-number">{String(unit.id).padStart(2, "0")}</div><div><p>{lesson.focus}</p><div className="tag-row">{unit.tags.map((tag) => <span key={tag}>{tag}</span>)}</div></div></div>
     <div className="learn-folds">
       <CollapsibleSection eyebrow="KEY EXPRESSIONS" title={`${lesson.expressions.length} key expressions`} open={openSection === "expressions"} onToggle={() => toggle("expressions")}><div className="expression-grid">{lesson.expressions.map((item) => <div className="expression-item" key={item.english}><button className="tiny-play" onClick={() => speak(item.english)}><Play size={12} fill="currentColor" /></button><div><strong>{item.english}</strong><span>{item.chinese}</span><small>{item.note}</small></div></div>)}</div></CollapsibleSection>
       <CollapsibleSection eyebrow="COACH NOTES" title="Speak more naturally" open={openSection === "coach"} onToggle={() => toggle("coach")}>
         <div className="coach-module"><div className="coach-goal"><strong>Communication goal</strong><span>{enrichment.goal}</span></div><div className="coach-patterns">{enrichment.patterns.map((pattern) => <div className="coach-pattern" key={pattern.phrase}><strong>{pattern.phrase}</strong><span>{pattern.use}</span></div>)}</div><div className="coach-drill"><span>30-second drill</span><strong>{enrichment.drill}</strong></div><div className="coach-watch"><strong>Watch for</strong><span>{enrichment.watchFor}</span></div><div className="coach-check"><strong>Self-check</strong>{enrichment.selfCheck.map((item) => <span key={item}>- {item}</span>)}</div></div>
       </CollapsibleSection>
-      <CollapsibleSection eyebrow="CHAPTER PRACTICE" title="Practice exercise" open={openSection === "exercise"} onToggle={() => toggle("exercise")}><div className="exercise-card"><div className="exercise-top"><div><div className="card-kicker">CHAPTER PRACTICE ? PRACTICE</div><h3>{exercise.prompt}</h3></div><span className="exercise-type">{exercise.type === "choose" ? "Choose" : exercise.type === "rewrite" ? "Rewrite" : "Speak"}</span></div>{exercise.options && <div className="exercise-options">{exercise.options.map((option) => <button key={option} className={showAnswer && option === exercise.answer ? "correct" : ""} onClick={() => setShowAnswer(true)}>{option}</button>)}</div>}{!exercise.options && <button className="secondary-button compact exercise-reveal" onClick={() => setShowAnswer((value) => !value)}>{showAnswer ? "Hide answer" : "Show answer"}</button>}{showAnswer && <div className="exercise-answer"><Check size={15} /><div><strong>{exercise.answer}</strong><span>{exercise.explanation}</span></div></div>}</div></CollapsibleSection>
+      <CollapsibleSection eyebrow="CHAPTER PRACTICE" title="Practice exercise" open={openSection === "exercise"} onToggle={() => toggle("exercise")}><div className="exercise-card"><div className="exercise-top"><div><div className="card-kicker">CHAPTER PRACTICE - PRACTICE</div><h3>{exercise.prompt}</h3></div><span className="exercise-type">{exercise.type === "choose" ? "Choose" : exercise.type === "rewrite" ? "Rewrite" : "Speak"}</span></div>{exercise.options && <div className="exercise-options">{exercise.options.map((option) => <button key={option} className={showAnswer && option === exercise.answer ? "correct" : ""} onClick={() => setShowAnswer(true)}>{option}</button>)}</div>}{!exercise.options && <button className="secondary-button compact exercise-reveal" onClick={() => setShowAnswer((value) => !value)}>{showAnswer ? "Hide answer" : "Show answer"}</button>}{showAnswer && <div className="exercise-answer"><Check size={15} /><div><strong>{exercise.answer}</strong><span>{exercise.explanation}</span></div></div>}</div></CollapsibleSection>
       <CollapsibleSection eyebrow="OPTIONAL AUDIO" title="Local audio" open={openSection === "audio"} onToggle={() => toggle("audio")}><LocalAudioPlayer unit={unit} /></CollapsibleSection>
     </div>
     <div className="panel-footer"><span><BookOpen size={15} />Source page {unit.page}</span><button className="primary-button compact" onClick={() => { onProgress(70); onPractice(); }}>Start shadowing <ArrowUpRight size={15} /></button></div>
