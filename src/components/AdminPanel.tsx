@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BarChart3, Check, KeyRound, LoaderCircle, Power, RefreshCw, ShieldCheck, Trash2, UserPlus, X } from "lucide-react";
 import { createAdminUser, deleteAdminUser, listAdminUsers, updateAdminUser, type AdminUser } from "../lib/admin";
 import { AdminActivityView } from "./AdminActivityView";
+import { AdminAuditView } from "./AdminAuditView";
 
 type AdminPanelProps = { onClose: () => void };
 type FormMessage = { type: "error" | "success"; text: string } | null;
@@ -18,7 +19,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
   const [newPassword, setNewPassword] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
   const [newIsAdmin, setNewIsAdmin] = useState(false);
-  const [view, setView] = useState<"users" | "activity">("users");
+  const [view, setView] = useState<"users" | "activity" | "audit">("users");
 
   async function refresh() {
     setLoading(true);
@@ -78,7 +79,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
         <button className="icon-button" onClick={onClose} aria-label="Close"><X size={19} /></button>
       </div>
       {message && <div className={`auth-message ${message.type}`}>{message.text}</div>}
-      <div className="admin-view-tabs"><button className={view === "users" ? "active" : ""} onClick={() => setView("users")}><UserPlus size={15} />Users</button><button className={view === "activity" ? "active" : ""} onClick={() => setView("activity")}><BarChart3 size={15} />Activity & stats</button></div>
+      <div className="admin-view-tabs"><button className={view === "users" ? "active" : ""} onClick={() => setView("users")}><UserPlus size={15} />Users</button><button className={view === "activity" ? "active" : ""} onClick={() => setView("activity")}><BarChart3 size={15} />Activity & stats</button><button className={view === "audit" ? "active" : ""} onClick={() => setView("audit")}><ShieldCheck size={15} />Audit log</button></div>
       {view === "users" && <>
       <div className="admin-toolbar"><button className="primary-button compact" onClick={() => setShowCreate((value) => !value)}><UserPlus size={15} />{showCreate ? "Hide create form" : "Create user"}</button><button className="secondary-button compact" onClick={() => void refresh()} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} />Refresh</button></div>
       {showCreate && <div className="admin-create-form">
@@ -91,6 +92,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
       </div>
       </>}
       {view === "activity" && <AdminActivityView />}
+      {view === "audit" && <AdminAuditView />}
       <div className="modal-note"><ShieldCheck size={15} />Changes update Supabase Auth and the username allowlist. Deleting a user also removes that user's profile and cloud progress.</div>
     </div>
   </div>;

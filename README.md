@@ -120,3 +120,7 @@ select activity_type, unit_id, metadata, created_at
 from public.user_activity
 order by created_at desc;
 ```
+
+## Administrator audit log
+
+The admin console includes an **Audit log** tab for account-management actions: creating users, resetting passwords, enabling or disabling accounts, changing administrator access, and deleting users. Run [`supabase/audit.sql`](./supabase/audit.sql) once in Supabase SQL Editor. Audit rows are readable only through the authenticated admin API and retain the actor, target username, action, metadata, and timestamp.

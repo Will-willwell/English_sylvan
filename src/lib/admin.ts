@@ -77,3 +77,21 @@ export async function getAdminActivity(username = "") {
   const query = username ? `?username=${encodeURIComponent(username)}&limit=200` : "?limit=200";
   return adminRequest(`/api/admin/activity${query}`) as Promise<AdminActivityPayload>;
 }
+
+
+export type AdminAuditLog = {
+  id: number;
+  actor_user_id: string | null;
+  actor_username: string;
+  actor_display_name: string;
+  action: string;
+  target_username: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export async function getAdminAudit(username = "") {
+  const query = username ? `?username=${encodeURIComponent(username)}&limit=200` : "?limit=200";
+  const payload = await adminRequest(`/api/admin/audit${query}`) as { logs?: AdminAuditLog[] };
+  return payload.logs ?? [];
+}

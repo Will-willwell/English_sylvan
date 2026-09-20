@@ -42,6 +42,16 @@ function normalizedUsername(value: unknown) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+async function writeAudit(client: SupabaseClient, actorUserId: string, action: string, targetUsername: string, metadata: Record<string, unknown> = {}) {
+  const { error } = await client.from("admin_audit_log").insert({
+    actor_user_id: actorUserId,
+    action,
+    target_username: targetUsername,
+    metadata,
+  });
+  if (error) console.error("Could not write admin audit log:", error.message);
+}
+
 async function requireAdmin(context: PagesContext, client: SupabaseClient) {
   const authorization = context.request.headers.get("authorization") || "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
@@ -131,6 +141,7 @@ async function handlePost(context: PagesContext, client: SupabaseClient) {
     display_name: displayName || username, is_admin: isAdmin,
   }).eq("id", data.user.id);
   if (profileError) return json({ error: profileError.message }, 400);
+  await writeAudit(client, auth.user.id, "user_created", username, { display_name: displayName || username, is_admin: isAdmin });
   return json({ user: { username, user_id: data.user.id } }, 201);
 }
 
@@ -181,6 +192,19 @@ async function handlePatch(context: PagesContext, client: SupabaseClient) {
     const { error: profileError } = await client.from("profiles").update(profileUpdate).eq("id", authUser.id);
     if (profileError) return json({ error: profileError.message }, 400);
   }
+
+  let auditAction = "user_updated";
+  if (password !== undefined && displayName === undefined && body.is_active === undefined && body.is_admin === undefined) auditAction = "user_password_reset";
+  else if (body.is_active === true) auditAction = "user_enabled";
+  else if (body.is_active === false) auditAction = "user_disabled";
+  else if (body.is_admin === true) auditAction = "user_admin_granted";
+  else if (body.is_admin === false) auditAction = "user_admin_revoked";
+  await writeAudit(client, auth.user.id, auditAction, username, {
+    changed_display_name: displayName !== undefined,
+    changed_password: password !== undefined,
+    is_active: body.is_active,
+    is_admin: body.is_admin,
+  });
   return json({ ok: true });
 }
 
@@ -209,6 +233,7 @@ async function handleDelete(context: PagesContext, client: SupabaseClient) {
   const { error: deleteAllowlistError } = await client.from("allowed_usernames").delete().eq("username", username);
   if (deleteAllowlistError) return json({ error: deleteAllowlistError.message }, 400);
 
+  await writeAudit(client, auth.user.id, "user_deleted", username, { auth_user_id: authUser?.id ?? null });
   return json({ ok: true, username });
 }
 
