@@ -134,3 +134,9 @@ The production build includes a web app manifest, installable app metadata, a li
 The header shows cloud progress status: `Synced`, `Syncing...`, `Offline ? saved locally`, or `Sync issue`. Progress changes are queued in per-user local storage while offline and retried automatically when the browser comes back online.
 
 Run [`supabase/session.sql`](./supabase/session.sql) once in Supabase SQL Editor and deploy the latest code. The session API stores one device lease per account; signing in on another device replaces the lease, and the previous browser detects the replacement within 30 seconds and signs out. The server-only Cloudflare variables `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are required for `/api/session/*`. Offline browsers can keep reading local content, but the single-device check resumes when connectivity returns.
+
+## Content design: spaced review and foldable lessons
+
+The learning page now includes a lightweight forgetting-curve review queue. A completed Unit is scheduled for review, and the learner can rate it as Again, Hard, Good, or Easy; intervals grow as recall becomes more stable. Review state is currently stored per account in browser storage so it remains separate between users on the same device.
+
+Long Unit content is divided into collapsible sections: key expressions, chapter practice, and optional audio. This keeps the mobile page shorter while preserving one-tap access to the full lesson.

@@ -32,8 +32,11 @@ import { AuthModal } from "./components/AuthModal";
 import { AdminPanel } from "./components/AdminPanel";
 import { AccountPanel } from "./components/AccountPanel";
 import { PwaInstallButton } from "./components/PwaInstallButton";
+import { ReviewPanel } from "./components/ReviewPanel";
+import { CollapsibleSection } from "./components/CollapsibleSection";
 import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 import { recordActivity } from "./lib/activity";
+import { applyReview, createInitialReview, readReviewStates, reviewStorageKey, type ReviewRating, type ReviewState } from "./lib/review";
 import { claimDeviceSession, checkDeviceSession, releaseDeviceSession } from "./lib/session";
 
 const STORAGE_KEY = "business-speaking-progress-v1";
@@ -101,6 +104,7 @@ function App() {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"learn" | "practice" | "dialogue">("learn");
   const [savedProgress, setSavedProgress] = useState<Record<number, number>>(() => readProgress(STORAGE_KEY));
+  const [reviewStates, setReviewStates] = useState<Record<number, ReviewState>>(() => readReviewStates(reviewStorageKey()));
   const [showAudioPanel, setShowAudioPanel] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -214,6 +218,9 @@ function App() {
     const requestId = ++progressLoadRef.current;
     const storageKey = progressStorageKey(authUser?.id);
     const localProgress = readProgress(storageKey);
+    const reviewKey = reviewStorageKey(authUser?.id);
+    const localReview = readReviewStates(reviewKey);
+    setReviewStates(localReview);
     if (!authUser || !supabase) {
       setSavedProgress(localProgress);
       return;
@@ -353,6 +360,7 @@ function App() {
     const storageKey = progressStorageKey(authUser?.id);
     setSavedProgress(next);
     localStorage.setItem(storageKey, JSON.stringify(next));
+    ensureReviewScheduled(activeUnit.id);
 
     if (authUser && supabase) {
       pendingProgressRef.current = { ...pendingProgressRef.current, [activeUnit.id]: updatedProgress };
@@ -365,6 +373,28 @@ function App() {
         metadata: { progress: updatedProgress },
       });
     }
+  }
+
+  function rateReview(unitId: number, rating: ReviewRating) {
+    const nextState = applyReview(reviewStates[unitId], unitId, rating);
+    const next = { ...reviewStates, [unitId]: nextState };
+    setReviewStates(next);
+    localStorage.setItem(reviewStorageKey(authUser?.id), JSON.stringify(next));
+    if (authUser) {
+      void recordActivity({
+        userId: authUser.id,
+        activityType: "progress_updated",
+        unitId,
+        metadata: { review_rating: rating, next_review_at: nextState.nextReviewAt },
+      });
+    }
+  }
+
+  function ensureReviewScheduled(unitId: number) {
+    if (reviewStates[unitId]) return;
+    const next = { ...reviewStates, [unitId]: createInitialReview(unitId) };
+    setReviewStates(next);
+    localStorage.setItem(reviewStorageKey(authUser?.id), JSON.stringify(next));
   }
 
   function startPractice() {
@@ -445,6 +475,8 @@ function App() {
             <div className="section-card quick-card"><div className="quick-card-icon"><Mic size={19} /></div><div><div className="card-kicker">快速练习</div><h2>练一句就好</h2><p>用 60 秒复习当前章节的重点表达</p></div><button className="round-arrow" onClick={startPractice}><ArrowUpRight size={18} /></button></div>
           </section>
 
+          <ReviewPanel units={allUnits} progress={savedProgress} states={reviewStates} onSelect={selectUnit} onRate={rateReview} />
+
           <section id="lesson-workspace" className="workspace-grid">
             <div className="content-column">
               <div className="tabs-row"><div className="tabs"><button className={activeTab === "learn" ? "active" : ""} onClick={() => setActiveTab("learn")}>Learn</button><button className={activeTab === "practice" ? "active" : ""} onClick={startPractice}>Practice</button><button className={activeTab === "dialogue" ? "active" : ""} onClick={startDialogue}>Dialogue</button></div><span className="source-badge"><span />20 Units loaded</span></div>
@@ -474,9 +506,25 @@ function SyncStatus({ status, deviceStatus }: { status: "idle" | "syncing" | "sy
 }
 
 function LearnPanel({ unit, lesson, onSpeak, onProgress, onPractice }: { unit: Unit; lesson: LessonContent; onSpeak: () => void; onProgress: (progress: number) => void; onPractice: () => void }) {
+  const [openSection, setOpenSection] = useState<"expressions" | "exercise" | "audio">("expressions");
   const [showAnswer, setShowAnswer] = useState(false);
   const exercise = lesson.exercise;
-  return <div className="section-card learn-panel"><div className="panel-heading"><div><div className="card-kicker">UNIT {String(unit.id).padStart(2, "0")} · {unit.title.toUpperCase()}</div><h2>{unit.chinese}：把场景说清楚</h2></div><button className="round-play" onClick={onSpeak}><Volume2 size={19} /></button></div><div className="lesson-intro"><div className="lesson-number">{String(unit.id).padStart(2, "0")}</div><div><p>{lesson.focus}</p><div className="tag-row">{unit.tags.map((tag) => <span key={tag}>{tag}</span>)}</div></div></div><div className="expression-grid">{lesson.expressions.map((item) => <div className="expression-item" key={item.english}><button className="tiny-play" onClick={() => speak(item.english)}><Play size={12} fill="currentColor" /></button><div><strong>{item.english}</strong><span>{item.chinese}</span><small>{item.note}</small></div></div>)}</div><div className="exercise-card"><div className="exercise-top"><div><div className="card-kicker">CHAPTER PRACTICE · 章节练习</div><h3>{exercise.prompt}</h3></div><span className="exercise-type">{exercise.type === "choose" ? "选择" : exercise.type === "rewrite" ? "改写" : "口语"}</span></div>{exercise.options && <div className="exercise-options">{exercise.options.map((option) => <button key={option} className={showAnswer && option === exercise.answer ? "correct" : ""} onClick={() => setShowAnswer(true)}>{option}</button>)}</div>}{!exercise.options && <button className="secondary-button compact exercise-reveal" onClick={() => setShowAnswer((value) => !value)}>{showAnswer ? "收起参考表达" : "查看参考表达"}</button>}{showAnswer && <div className="exercise-answer"><Check size={15} /><div><strong>{exercise.answer}</strong><span>{exercise.explanation}</span></div></div>}</div><LocalAudioPlayer unit={unit} /><div className="panel-footer"><span><BookOpen size={15} />书中原章节：第 {unit.page} 页起</span><button className="primary-button compact" onClick={() => { onProgress(70); onPractice(); }}>进入跟读练习 <ArrowUpRight size={15} /></button></div></div>;
+  const toggle = (section: "expressions" | "exercise" | "audio") => setOpenSection((current) => current === section ? "expressions" : section);
+
+  return <div className="section-card learn-panel">
+    <div className="panel-heading"><div><div className="card-kicker">UNIT {String(unit.id).padStart(2, "0")} ? {unit.title.toUpperCase()}</div><h2>{unit.chinese}???????</h2></div><button className="round-play" onClick={onSpeak}><Volume2 size={19} /></button></div>
+    <div className="lesson-intro"><div className="lesson-number">{String(unit.id).padStart(2, "0")}</div><div><p>{lesson.focus}</p><div className="tag-row">{unit.tags.map((tag) => <span key={tag}>{tag}</span>)}</div></div></div>
+    <div className="learn-folds">
+      <CollapsibleSection eyebrow="KEY EXPRESSIONS" title={`???? ? ${lesson.expressions.length} ?`} open={openSection === "expressions"} onToggle={() => toggle("expressions")}>
+        <div className="expression-grid">{lesson.expressions.map((item) => <div className="expression-item" key={item.english}><button className="tiny-play" onClick={() => speak(item.english)}><Play size={12} fill="currentColor" /></button><div><strong>{item.english}</strong><span>{item.chinese}</span><small>{item.note}</small></div></div>)}</div>
+      </CollapsibleSection>
+      <CollapsibleSection eyebrow="CHAPTER PRACTICE" title="????" open={openSection === "exercise"} onToggle={() => toggle("exercise")}>
+        <div className="exercise-card"><div className="exercise-top"><div><div className="card-kicker">CHAPTER PRACTICE ? ????</div><h3>{exercise.prompt}</h3></div><span className="exercise-type">{exercise.type === "choose" ? "??" : exercise.type === "rewrite" ? "??" : "??"}</span></div>{exercise.options && <div className="exercise-options">{exercise.options.map((option) => <button key={option} className={showAnswer && option === exercise.answer ? "correct" : ""} onClick={() => setShowAnswer(true)}>{option}</button>)}</div>}{!exercise.options && <button className="secondary-button compact exercise-reveal" onClick={() => setShowAnswer((value) => !value)}>{showAnswer ? "??????" : "??????"}</button>}{showAnswer && <div className="exercise-answer"><Check size={15} /><div><strong>{exercise.answer}</strong><span>{exercise.explanation}</span></div></div>}</div>
+      </CollapsibleSection>
+      <CollapsibleSection eyebrow="OPTIONAL AUDIO" title="????" open={openSection === "audio"} onToggle={() => toggle("audio")}><LocalAudioPlayer unit={unit} /></CollapsibleSection>
+    </div>
+    <div className="panel-footer"><span><BookOpen size={15} />??????? {unit.page} ??</span><button className="primary-button compact" onClick={() => { onProgress(70); onPractice(); }}>?????? <ArrowUpRight size={15} /></button></div>
+  </div>;
 }
 
 function LocalAudioPlayer({ unit }: { unit: Unit }) {

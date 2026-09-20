@@ -329,3 +329,55 @@ body { overflow-x: hidden; overscroll-behavior-y: none; }
 .sync-status.error { color: #9a5a4d; background: #fff1ed; }
 @keyframes sync-pulse { 50% { opacity: .35; transform: scale(.75); } }
 @media (max-width: 760px) { .sync-status { padding: 8px; font-size: 0; }.sync-status > span { margin: 0; } }
+
+
+/* Spaced review and collapsible lesson layout */
+.review-card { margin-top: 22px; padding: 21px 22px; }
+.review-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+.review-card h2 { margin-top: 7px; color: var(--ink); font: 800 21px "Manrope", sans-serif; letter-spacing: -.05em; }
+.review-card-heading p { max-width: 560px; margin-top: 8px; color: #879791; font-size: 11px; line-height: 1.55; }
+.review-brain { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 auto; color: var(--green); border-radius: 13px; background: var(--mint); }
+.review-summary { display: flex; align-items: center; gap: 22px; margin-top: 18px; padding: 12px 13px; border-radius: 11px; background: #f5faf5; }
+.review-summary strong, .review-summary span { display: block; }
+.review-summary strong { color: var(--ink); font: 800 19px "Manrope", sans-serif; }
+.review-summary span { margin-top: 2px; color: #8a9c95; font-size: 9px; }
+.review-method { display: inline-flex !important; align-items: center; gap: 5px; margin-left: auto; color: var(--green) !important; font-weight: 800; }
+.review-list { display: grid; gap: 8px; margin-top: 14px; }
+.review-item { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: #fff; }
+.review-item-main { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 0; color: var(--ink); text-align: left; background: transparent; }
+.review-item-main > span:nth-child(2) { min-width: 0; flex: 1; }
+.review-item-main strong, .review-item-main small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.review-item-main strong { font-size: 11px; }
+.review-item-main small { margin-top: 4px; color: #8a9c95; font-size: 9px; }
+.review-unit-number { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 auto; color: var(--green); border-radius: 9px; background: var(--mint); font-size: 10px; font-weight: 800; }
+.review-actions { display: flex; align-items: center; gap: 5px; }
+.review-actions button { display: inline-flex; align-items: center; gap: 4px; padding: 7px 8px; color: #6f837b; border: 1px solid #e0ebe2; border-radius: 7px; background: #fbfdfb; font-size: 9px; font-weight: 800; }
+.review-actions button:hover { color: var(--green); border-color: #a7ccb4; background: #eef8ef; }
+.review-more { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; color: var(--green); background: transparent; font-size: 10px; font-weight: 800; }
+.review-empty { display: flex; align-items: center; gap: 9px; margin-top: 14px; padding: 15px; color: var(--green); border-radius: 10px; background: #eef8ef; }
+.review-empty strong, .review-empty span { display: block; }
+.review-empty strong { color: var(--ink); font-size: 11px; }
+.review-empty span { margin-top: 4px; color: #7e9289; font-size: 9px; }
+.learn-folds { display: grid; gap: 8px; margin-top: 20px; }
+.collapsible-section { overflow: hidden; border: 1px solid var(--line); border-radius: 11px; background: #fff; }
+.collapsible-section.is-open { box-shadow: 0 5px 16px rgba(35,73,65,.04); }
+.collapsible-trigger { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 13px 14px; color: var(--ink); background: #fbfdfb; text-align: left; }
+.collapsible-trigger:hover { background: #f1f8f2; }
+.collapsible-trigger > span { min-width: 0; }
+.collapsible-trigger small, .collapsible-trigger strong { display: block; }
+.collapsible-trigger small { color: #9aa9a3; font-size: 8px; font-weight: 800; letter-spacing: .12em; }
+.collapsible-trigger strong { margin-top: 4px; font-size: 11px; }
+.collapsible-trigger svg { color: #8fa29a; transition: transform .2s ease; }
+.collapsible-section.is-open .collapsible-trigger svg { transform: rotate(180deg); }
+.collapsible-content { padding: 0 14px 14px; }
+.collapsible-content .expression-grid { margin-top: 0; }
+.collapsible-content .exercise-card { margin-top: 0; border: 0; border-radius: 0; padding: 3px 0 0; }
+.collapsible-content .local-audio-slot { margin-top: 0; border: 0; border-radius: 0; padding: 3px 0 0; }
+@media (max-width: 760px) {
+  .review-card { padding: 17px 15px; }
+  .review-summary { gap: 15px; }
+  .review-item { grid-template-columns: 1fr; }
+  .review-actions { justify-content: flex-end; padding-top: 7px; border-top: 1px solid #edf3ee; }
+  .review-actions button { flex: 1; justify-content: center; }
+}
+@media (max-width: 430px) { .review-card-heading p { font-size: 10px; }.review-method { display: none !important; }.review-summary { justify-content: space-between; }.collapsible-content { padding: 0 10px 10px; } }
