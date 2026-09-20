@@ -461,8 +461,8 @@ function App() {
           <button className="icon-button mobile-close" aria-label="关闭菜单" onClick={() => setShowMobileMenu(false)}><X size={18} /></button>
         </div>
         <nav className="primary-nav" aria-label="主导航">
-          <button className="nav-item active"><LayoutDashboard size={18} />学习总览</button>
-          <button className="nav-item" onClick={() => openModuleAndScroll("curriculum")}><BookOpen size={18} />课程章节</button>
+           <button className={`nav-item ${viewMode === "overview" ? "active" : ""}`} onClick={() => { setViewMode("overview"); setShowMobileMenu(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}><LayoutDashboard size={18} />Overview</button>
+           <button className="nav-item" onClick={() => openLearningModule("all")}><BookOpen size={18} />Course modules</button>
           <button className="nav-item" onClick={() => setShowAudioPanel(true)}><Headphones size={18} />听力资源</button>
         </nav>
         <div className="sidebar-divider" />
@@ -472,7 +472,7 @@ function App() {
           {sections.map((section) => <button key={section.id} className={`section-item ${activeSection === section.title ? "selected" : ""}`} onClick={() => openLearningModule(section.title)}><span className="section-dot" />{section.title} <span className="section-count">4</span></button>)}
         </div>
         <div className="sidebar-footer">
-          <div className="mini-goal"><div className="mini-goal-icon"><Sparkles size={16} /></div><div><strong>今日目标</strong><span>完成 1 个口语练习</span></div></div>
+           <button className="mini-goal" onClick={() => openLearningModule("all")}><div className="mini-goal-icon"><Sparkles size={16} /></div><div><strong>Daily goal</strong><span>{dueReviewCount > 0 ? `Due reviews: ${dueReviewCount}` : "Complete 1 speaking practice"}</span></div><ChevronRight size={14} /></button>
 
         </div>
       </aside>
