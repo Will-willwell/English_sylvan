@@ -31,6 +31,7 @@ import {
 import { AuthModal } from "./components/AuthModal";
 import { AdminPanel } from "./components/AdminPanel";
 import { AccountPanel } from "./components/AccountPanel";
+import { PwaInstallButton } from "./components/PwaInstallButton";
 import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 import { recordActivity } from "./lib/activity";
 
@@ -309,7 +310,7 @@ function App() {
         <header className="topbar">
           <button className="mobile-menu-trigger" onClick={() => setShowMobileMenu(true)} aria-label="打开菜单"><Waves size={20} /></button>
           <div className="breadcrumb"><span>学习总览</span><ChevronRight size={15} /><strong>Chapter {activeUnit.id}</strong></div>
-          <div className="topbar-actions"><button className="help-button"><CircleHelp size={17} />Help</button>{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
+          <div className="topbar-actions"><PwaInstallButton /><button className="help-button"><CircleHelp size={17} />Help</button>{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
         </header>
 
         <div className="page-container">

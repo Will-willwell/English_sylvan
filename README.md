@@ -124,3 +124,7 @@ order by created_at desc;
 ## Administrator audit log
 
 The admin console includes an **Audit log** tab for account-management actions: creating users, resetting passwords, enabling or disabling accounts, changing administrator access, and deleting users. Run [`supabase/audit.sql`](./supabase/audit.sql) once in Supabase SQL Editor. Audit rows are readable only through the authenticated admin API and retain the actor, target username, action, metadata, and timestamp.
+
+## PWA and mobile support
+
+The production build includes a web app manifest, installable app metadata, a lightweight service worker, offline fallback caching, an install prompt when the browser supports it, and responsive mobile layouts with safe-area support. The PWA is available over HTTPS after Cloudflare Pages deploys the latest commit. On iOS, use Safari's **Share ? Add to Home Screen**; on Chromium browsers, use the **Install app** button or the browser install icon.
