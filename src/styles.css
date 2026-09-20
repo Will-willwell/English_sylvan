@@ -410,3 +410,21 @@ body { overflow-x: hidden; overscroll-behavior-y: none; }
   .dashboard-module-trigger { min-height: 59px; padding: 11px 12px; }
   .dashboard-module-content > .curriculum-section { padding: 0; }
 }
+
+
+/* Coach content modules */
+.coach-module { display: grid; gap: 11px; padding-top: 3px; }
+.coach-goal, .coach-drill, .coach-watch, .coach-check { display: grid; gap: 5px; padding: 11px 12px; border-radius: 9px; background: #f5faf5; }
+.coach-goal strong, .coach-drill span, .coach-watch strong, .coach-check strong { color: var(--green); font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.coach-goal span, .coach-drill strong, .coach-watch span, .coach-check span { color: #657b74; font-size: 10px; line-height: 1.5; }
+.coach-patterns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.coach-pattern { display: grid; gap: 5px; padding: 10px; border: 1px solid #dcebe1; border-radius: 9px; background: #fff; }
+.coach-pattern strong { color: var(--ink); font-size: 10px; }
+.coach-pattern span { color: #8b9d96; font-size: 9px; line-height: 1.45; }
+.coach-drill { background: #fff9e8; }
+.coach-drill span { color: #9a7625; }
+.coach-drill strong { color: #6e5c2a; font-size: 10px; letter-spacing: 0; text-transform: none; }
+.coach-watch { background: #fff4ef; }
+.coach-watch strong { color: #a45549; }
+.coach-check { background: #eef7f0; }
+@media (max-width: 520px) { .coach-patterns { grid-template-columns: 1fr; } }

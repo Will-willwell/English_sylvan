@@ -5,7 +5,6 @@ import {
   BookOpen,
   Check,
   ChevronRight,
-  CircleHelp,
   Clock3,
   Headphones,
   LayoutDashboard,
@@ -35,6 +34,7 @@ import { PwaInstallButton } from "./components/PwaInstallButton";
 import { VoicePicker } from "./components/VoicePicker";
 import { ReviewPanel } from "./components/ReviewPanel";
 import { CollapsibleSection } from "./components/CollapsibleSection";
+import { lessonEnrichment } from "./data/lessonEnrichment";
 import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 import { recordActivity } from "./lib/activity";
 import { applyReview, createInitialReview, readReviewStates, reviewStorageKey, type ReviewRating, type ReviewState } from "./lib/review";
@@ -445,7 +445,7 @@ function App() {
       <aside className={`sidebar ${showMobileMenu ? "is-open" : ""}`}>
         <div className="brand-lockup">
           <div className="brand-mark"><Waves size={19} strokeWidth={2.6} /></div>
-          <div><div className="brand-name">LingoDesk</div><div className="brand-caption">BUSINESS SPEAKING LAB</div></div>
+          <div><div className="brand-name">DOIT</div><div className="brand-caption">BUSINESS SPEAKING LAB</div></div>
           <button className="icon-button mobile-close" aria-label="关闭菜单" onClick={() => setShowMobileMenu(false)}><X size={18} /></button>
         </div>
         <nav className="primary-nav" aria-label="主导航">
@@ -461,7 +461,7 @@ function App() {
         </div>
         <div className="sidebar-footer">
           <div className="mini-goal"><div className="mini-goal-icon"><Sparkles size={16} /></div><div><strong>今日目标</strong><span>完成 1 个口语练习</span></div></div>
-          <button className="user-chip" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}><div className="avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div><div><strong>{authUser ? (userToUsername(authUser) || "Learner") : "Not signed in"}</strong><span>{authUser ? "Sign out" : "Sign in"}</span></div><ChevronRight size={16} /></button>
+
         </div>
       </aside>
 
@@ -469,7 +469,7 @@ function App() {
         <header className="topbar">
           <button className="mobile-menu-trigger" onClick={() => setShowMobileMenu(true)} aria-label="打开菜单"><Waves size={20} /></button>
           <div className="breadcrumb"><span>学习总览</span><ChevronRight size={15} /><strong>Chapter {activeUnit.id}</strong></div>
-          <div className="topbar-actions"><SyncStatus status={syncStatus} deviceStatus={deviceStatus} /><VoicePicker /><PwaInstallButton /><button className="help-button"><CircleHelp size={17} />Help</button>{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
+          <div className="topbar-actions"><SyncStatus status={syncStatus} deviceStatus={deviceStatus} /><VoicePicker /><PwaInstallButton />{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
         </header>
 
         <div className="page-container">
@@ -478,7 +478,7 @@ function App() {
               <div className="eyebrow"><span className="eyebrow-dot" />你的商务英语口语路径</div>
               <h1>把每一次寒暄，<em>变成机会。</em></h1>
               <p>按《Collins English for Business: Speaking》章节学习，先听清楚，再说自然，最后在真实商务场景中用出来。</p>
-              <div className="hero-actions"><button className="primary-button" onClick={() => { startPractice(); updateUnitProgress(70); }}><Play size={17} fill="currentColor" />继续 Unit {activeUnit.id}</button><button className="secondary-button" onClick={() => setShowAudioPanel(true)}><Headphones size={17} />查看听力资源</button></div>
+              <div className="hero-actions"><button className="primary-button" onClick={() => { startPractice(); updateUnitProgress(70); }}><Play size={17} fill="currentColor" />继续 Unit {activeUnit.id}</button></div>
             </div>
             <div className="hero-stat-card"><div className="stat-card-top"><span>学习进度</span><span className="stat-label">B1–C2 · Business English</span></div><div className="big-progress"><strong>{overallProgress}%</strong><span>全书进度</span></div><div className="progress-track"><span style={{ width: `${overallProgress}%` }} /></div><div className="stat-foot"><span><Check size={14} /> {completedUnits} / 20 章节完成</span><span><Clock3 size={14} /> 每日 10 分钟</span></div></div>
           </section>
@@ -533,16 +533,20 @@ function SyncStatus({ status, deviceStatus }: { status: "idle" | "syncing" | "sy
 }
 
 function LearnPanel({ unit, lesson, onSpeak, onProgress, onPractice }: { unit: Unit; lesson: LessonContent; onSpeak: () => void; onProgress: (progress: number) => void; onPractice: () => void }) {
-  const [openSection, setOpenSection] = useState<"expressions" | "exercise" | "audio">("expressions");
+  const [openSection, setOpenSection] = useState<"expressions" | "coach" | "exercise" | "audio">("expressions");
   const [showAnswer, setShowAnswer] = useState(false);
   const exercise = lesson.exercise;
-  const toggle = (section: "expressions" | "exercise" | "audio") => setOpenSection((current) => current === section ? "expressions" : section);
+  const enrichment = lessonEnrichment[unit.id];
+  const toggle = (section: "expressions" | "coach" | "exercise" | "audio") => setOpenSection((current) => current === section ? "expressions" : section);
 
   return <div className="section-card learn-panel">
     <div className="panel-heading"><div><div className="card-kicker">UNIT {String(unit.id).padStart(2, "0")} ? {unit.title.toUpperCase()}</div><h2>{unit.chinese}: Make the scenario clear</h2></div><button className="round-play" onClick={onSpeak}><Volume2 size={19} /></button></div>
     <div className="lesson-intro"><div className="lesson-number">{String(unit.id).padStart(2, "0")}</div><div><p>{lesson.focus}</p><div className="tag-row">{unit.tags.map((tag) => <span key={tag}>{tag}</span>)}</div></div></div>
     <div className="learn-folds">
       <CollapsibleSection eyebrow="KEY EXPRESSIONS" title={`${lesson.expressions.length} key expressions`} open={openSection === "expressions"} onToggle={() => toggle("expressions")}><div className="expression-grid">{lesson.expressions.map((item) => <div className="expression-item" key={item.english}><button className="tiny-play" onClick={() => speak(item.english)}><Play size={12} fill="currentColor" /></button><div><strong>{item.english}</strong><span>{item.chinese}</span><small>{item.note}</small></div></div>)}</div></CollapsibleSection>
+      <CollapsibleSection eyebrow="COACH NOTES" title="Speak more naturally" open={openSection === "coach"} onToggle={() => toggle("coach")}>
+        <div className="coach-module"><div className="coach-goal"><strong>Communication goal</strong><span>{enrichment.goal}</span></div><div className="coach-patterns">{enrichment.patterns.map((pattern) => <div className="coach-pattern" key={pattern.phrase}><strong>{pattern.phrase}</strong><span>{pattern.use}</span></div>)}</div><div className="coach-drill"><span>30-second drill</span><strong>{enrichment.drill}</strong></div><div className="coach-watch"><strong>Watch for</strong><span>{enrichment.watchFor}</span></div><div className="coach-check"><strong>Self-check</strong>{enrichment.selfCheck.map((item) => <span key={item}>- {item}</span>)}</div></div>
+      </CollapsibleSection>
       <CollapsibleSection eyebrow="CHAPTER PRACTICE" title="Practice exercise" open={openSection === "exercise"} onToggle={() => toggle("exercise")}><div className="exercise-card"><div className="exercise-top"><div><div className="card-kicker">CHAPTER PRACTICE ? PRACTICE</div><h3>{exercise.prompt}</h3></div><span className="exercise-type">{exercise.type === "choose" ? "Choose" : exercise.type === "rewrite" ? "Rewrite" : "Speak"}</span></div>{exercise.options && <div className="exercise-options">{exercise.options.map((option) => <button key={option} className={showAnswer && option === exercise.answer ? "correct" : ""} onClick={() => setShowAnswer(true)}>{option}</button>)}</div>}{!exercise.options && <button className="secondary-button compact exercise-reveal" onClick={() => setShowAnswer((value) => !value)}>{showAnswer ? "Hide answer" : "Show answer"}</button>}{showAnswer && <div className="exercise-answer"><Check size={15} /><div><strong>{exercise.answer}</strong><span>{exercise.explanation}</span></div></div>}</div></CollapsibleSection>
       <CollapsibleSection eyebrow="OPTIONAL AUDIO" title="Local audio" open={openSection === "audio"} onToggle={() => toggle("audio")}><LocalAudioPlayer unit={unit} /></CollapsibleSection>
     </div>

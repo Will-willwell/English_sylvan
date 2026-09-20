@@ -146,3 +146,9 @@ Long Unit content is divided into collapsible sections: key expressions, chapter
 The three supplied PDFs are treated as private source material. The site keeps the original 20-Unit learning structure and original lesson arrangements, but does not publish a verbatim scan or a full-book transcription. Public redistribution of the complete book text or a complete audiobook requires the relevant rights.
 
 The pronunciation controls use the browser's available English voices and let the learner choose an `en-US`, `en-GB`, or other installed English voice. These are synthesized voices, not book audio recordings. To add licensed recordings, place the authorized MP3 files under `public/audio/` and wire them to the matching Unit; do not upload third-party or unlicensed book audio.
+
+## DOIT content modules
+
+The brand is now **DOIT**. The hero audio shortcut was removed from the top action row, Help was removed from the header, and the account control remains in the top-right. The sidebar goal card opens the review module, while review, current Unit, and course map are collapsible dashboard modules.
+
+Each Unit now has original coaching content in `src/data/lessonEnrichment.ts`: a communication goal, useful patterns, a short speaking drill, a common pitfall, and self-check items. This enriches the chapter experience without copying full book pages.
