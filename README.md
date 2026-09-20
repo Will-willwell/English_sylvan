@@ -146,9 +146,3 @@ Long Unit content is divided into collapsible sections: key expressions, chapter
 The three supplied PDFs are treated as private source material. The site keeps the original 20-Unit learning structure and original lesson arrangements, but does not publish a verbatim scan or a full-book transcription. Public redistribution of the complete book text or a complete audiobook requires the relevant rights.
 
 The pronunciation controls use the browser's available English voices and let the learner choose an `en-US`, `en-GB`, or other installed English voice. These are synthesized voices, not book audio recordings. To add licensed recordings, place the authorized MP3 files under `public/audio/` and wire them to the matching Unit; do not upload third-party or unlicensed book audio.
-
-## Private full-book reader
-
-The original PDFs are kept out of GitHub and out of public Pages assets. To use the complete purchased book privately, run [`supabase/book-storage.sql`](./supabase/book-storage.sql), create the private `book-source` bucket, and upload these exact object names from the three local PDFs: `part-1-50.pdf`, `part-51-100.pdf`, and `part-101-132.pdf`. After upload, signed URLs are generated only for authenticated users from the **Original source** menu.
-
-The browser voice picker selects installed English voices for pronunciation practice. It is synthesized speech, not a recording of the book audio. Only upload MP3 files for which you have the right to use them.
