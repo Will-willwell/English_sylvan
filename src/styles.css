@@ -320,3 +320,12 @@ body { overflow-x: hidden; overscroll-behavior-y: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.sync-status { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border-radius: 7px; color: #7c9189; background: #eef5ef; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.sync-status > span { width: 6px; height: 6px; border-radius: 50%; background: #62a57a; }
+.sync-status.syncing > span { background: #e2ac45; animation: sync-pulse 1s ease-in-out infinite; }
+.sync-status.offline { color: #9a5a4d; background: #fff1ed; }
+.sync-status.offline > span, .sync-status.error > span { background: #cf765f; }
+.sync-status.error { color: #9a5a4d; background: #fff1ed; }
+@keyframes sync-pulse { 50% { opacity: .35; transform: scale(.75); } }
+@media (max-width: 760px) { .sync-status { padding: 8px; font-size: 0; }.sync-status > span { margin: 0; } }

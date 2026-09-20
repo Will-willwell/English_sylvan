@@ -128,3 +128,9 @@ The admin console includes an **Audit log** tab for account-management actions: 
 ## PWA and mobile support
 
 The production build includes a web app manifest, installable app metadata, a lightweight service worker, offline fallback caching, an install prompt when the browser supports it, and responsive mobile layouts with safe-area support. The PWA is available over HTTPS after Cloudflare Pages deploys the latest commit. On iOS, use Safari's **Share ? Add to Home Screen**; on Chromium browsers, use the **Install app** button or the browser install icon.
+
+## Sync recovery and single-device sessions
+
+The header shows cloud progress status: `Synced`, `Syncing...`, `Offline ? saved locally`, or `Sync issue`. Progress changes are queued in per-user local storage while offline and retried automatically when the browser comes back online.
+
+Run [`supabase/session.sql`](./supabase/session.sql) once in Supabase SQL Editor and deploy the latest code. The session API stores one device lease per account; signing in on another device replaces the lease, and the previous browser detects the replacement within 30 seconds and signs out. The server-only Cloudflare variables `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are required for `/api/session/*`. Offline browsers can keep reading local content, but the single-device check resumes when connectivity returns.

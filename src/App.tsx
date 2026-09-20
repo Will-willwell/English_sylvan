@@ -34,6 +34,7 @@ import { AccountPanel } from "./components/AccountPanel";
 import { PwaInstallButton } from "./components/PwaInstallButton";
 import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 import { recordActivity } from "./lib/activity";
+import { claimDeviceSession, checkDeviceSession, releaseDeviceSession } from "./lib/session";
 
 const STORAGE_KEY = "business-speaking-progress-v1";
 
@@ -58,6 +59,18 @@ function readProgress(storageKey: string): Record<number, number> {
 
 function progressStorageKey(userId?: string) {
   return userId ? `${STORAGE_KEY}:${userId}` : STORAGE_KEY;
+}
+
+function pendingProgressStorageKey(userId: string) {
+  return `${STORAGE_KEY}:pending:${userId}`;
+}
+
+function readPendingProgress(userId: string): Record<number, number> {
+  return readProgress(pendingProgressStorageKey(userId));
+}
+
+function writePendingProgress(userId: string, progress: Record<number, number>) {
+  localStorage.setItem(pendingProgressStorageKey(userId), JSON.stringify(progress));
 }
 
 function clampProgress(value: number) {
@@ -96,7 +109,10 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showAccountPanel, setShowAccountPanel] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "offline" | "error">("idle");
+  const [deviceStatus, setDeviceStatus] = useState<"checking" | "active" | "offline" | "revoked" | "error">("checking");
   const progressLoadRef = useRef(0);
+  const pendingProgressRef = useRef<Record<number, number>>({});
 
   useEffect(() => {
     if (!supabase) return;
@@ -131,6 +147,55 @@ function App() {
 
   useEffect(() => {
     if (!authUser || !supabase) {
+      setDeviceStatus("checking");
+      return;
+    }
+    let cancelled = false;
+    const claim = async () => {
+      if (!navigator.onLine) {
+        if (!cancelled) setDeviceStatus("offline");
+        return;
+      }
+      try {
+        await claimDeviceSession();
+        if (!cancelled) setDeviceStatus("active");
+      } catch (error) {
+        console.warn("Single-device session could not be claimed.", error);
+        if (!cancelled) setDeviceStatus(navigator.onLine ? "error" : "offline");
+      }
+    };
+    void claim();
+    const interval = window.setInterval(async () => {
+      if (!navigator.onLine) {
+        setDeviceStatus("offline");
+        return;
+      }
+      try {
+        const result = await checkDeviceSession();
+        if (result.active) setDeviceStatus("active");
+        else {
+          setDeviceStatus("revoked");
+          await supabase.auth.signOut();
+        }
+      } catch (error) {
+        console.warn("Single-device session check failed.", error);
+        setDeviceStatus(navigator.onLine ? "error" : "offline");
+      }
+    }, 30000);
+    const onOnline = () => void claim();
+    const onOffline = () => setDeviceStatus("offline");
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, [authUser?.id]);
+
+  useEffect(() => {
+    if (!authUser || !supabase) {
       setIsAdmin(false);
       setShowAdminPanel(false);
       return;
@@ -149,9 +214,12 @@ function App() {
     const requestId = ++progressLoadRef.current;
     const storageKey = progressStorageKey(authUser?.id);
     const localProgress = readProgress(storageKey);
+    if (!authUser || !supabase) {
+      setSavedProgress(localProgress);
+      return;
+    }
+    pendingProgressRef.current = readPendingProgress(authUser.id);
     setSavedProgress(localProgress);
-
-    if (!authUser || !supabase) return;
 
     const client = supabase;
     let cancelled = false;
@@ -164,6 +232,7 @@ function App() {
       if (cancelled || requestId !== progressLoadRef.current) return;
       if (error) {
         console.warn("Cloud progress could not be loaded; local progress remains active.", error.message);
+        setSyncStatus(navigator.onLine ? "error" : "offline");
         return;
       }
 
@@ -189,10 +258,22 @@ function App() {
         }));
 
       if (pendingRows.length > 0) {
+        pendingProgressRef.current = Object.fromEntries(pendingRows.map((row) => [row.unit_id, row.progress]));
+        writePendingProgress(authUser.id, pendingProgressRef.current);
+        setSyncStatus("syncing");
         const { error: syncError } = await client
           .from("user_progress")
           .upsert(pendingRows, { onConflict: "user_id,unit_id" });
-        if (syncError) console.warn("Local progress could not be synced.", syncError.message);
+        if (syncError) {
+          console.warn("Local progress could not be synced.", syncError.message);
+          setSyncStatus(navigator.onLine ? "error" : "offline");
+        } else {
+          pendingProgressRef.current = {};
+          writePendingProgress(authUser.id, {});
+          setSyncStatus("synced");
+        }
+      } else {
+        setSyncStatus("synced");
       }
     }
 
@@ -202,10 +283,52 @@ function App() {
     };
   }, [authUser?.id]);
 
+  async function flushPendingProgress() {
+    if (!authUser || !supabase) return;
+    const pending = pendingProgressRef.current;
+    const entries = Object.entries(pending);
+    if (!entries.length) {
+      setSyncStatus("synced");
+      return;
+    }
+    if (!navigator.onLine) {
+      setSyncStatus("offline");
+      return;
+    }
+    setSyncStatus("syncing");
+    const client = supabase;
+    const { error } = await client.from("user_progress").upsert(
+      entries.map(([unitId, value]) => ({
+        user_id: authUser.id,
+        unit_id: Number(unitId),
+        progress: clampProgress(value),
+        updated_at: new Date().toISOString(),
+      })),
+      { onConflict: "user_id,unit_id" },
+    );
+    if (error) {
+      console.warn("Pending progress could not be synced.", error.message);
+      setSyncStatus("error");
+      return;
+    }
+    pendingProgressRef.current = {};
+    writePendingProgress(authUser.id, {});
+    setSyncStatus("synced");
+  }
+
+  useEffect(() => {
+    if (!authUser) return;
+    const onOnline = () => void flushPendingProgress();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [authUser?.id]);
+
   async function signOut() {
+    await releaseDeviceSession();
     if (supabase) await supabase.auth.signOut();
     setShowAccountPanel(false);
     setAuthUser(null);
+    setDeviceStatus("checking");
   }
 
   const activeUnit = allUnits.find((unit) => unit.id === activeUnitId) ?? allUnits[0];
@@ -232,17 +355,9 @@ function App() {
     localStorage.setItem(storageKey, JSON.stringify(next));
 
     if (authUser && supabase) {
-      void supabase
-        .from("user_progress")
-        .upsert({
-          user_id: authUser.id,
-          unit_id: activeUnit.id,
-          progress: updatedProgress,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id,unit_id" })
-        .then(({ error }) => {
-          if (error) console.warn("Progress was saved locally but not synced to Supabase.", error.message);
-        });
+      pendingProgressRef.current = { ...pendingProgressRef.current, [activeUnit.id]: updatedProgress };
+      writePendingProgress(authUser.id, pendingProgressRef.current);
+      void flushPendingProgress();
       void recordActivity({
         userId: authUser.id,
         activityType: "progress_updated",
@@ -310,7 +425,7 @@ function App() {
         <header className="topbar">
           <button className="mobile-menu-trigger" onClick={() => setShowMobileMenu(true)} aria-label="打开菜单"><Waves size={20} /></button>
           <div className="breadcrumb"><span>学习总览</span><ChevronRight size={15} /><strong>Chapter {activeUnit.id}</strong></div>
-          <div className="topbar-actions"><PwaInstallButton /><button className="help-button"><CircleHelp size={17} />Help</button>{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
+          <div className="topbar-actions"><SyncStatus status={syncStatus} deviceStatus={deviceStatus} /><PwaInstallButton /><button className="help-button"><CircleHelp size={17} />Help</button>{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
         </header>
 
         <div className="page-container">
@@ -350,6 +465,12 @@ function App() {
       {showAuthModal && <AuthModal required={isSupabaseConfigured && !authUser} onClose={() => setShowAuthModal(false)} />}
     </div>
   );
+}
+
+function SyncStatus({ status, deviceStatus }: { status: "idle" | "syncing" | "synced" | "offline" | "error"; deviceStatus: "checking" | "active" | "offline" | "revoked" | "error" }) {
+  const text = deviceStatus === "revoked" ? "Signed out on another device" : deviceStatus === "offline" || status === "offline" ? "Offline ? saved locally" : status === "syncing" ? "Syncing..." : status === "error" || deviceStatus === "error" ? "Sync issue" : status === "synced" ? "Synced" : "Cloud ready";
+  const className = deviceStatus === "revoked" || status === "error" || deviceStatus === "error" ? "error" : deviceStatus === "offline" || status === "offline" ? "offline" : status === "syncing" ? "syncing" : "synced";
+  return <span className={`sync-status ${className}`} title={text}><span />{text}</span>;
 }
 
 function LearnPanel({ unit, lesson, onSpeak, onProgress, onPractice }: { unit: Unit; lesson: LessonContent; onSpeak: () => void; onProgress: (progress: number) => void; onPractice: () => void }) {
