@@ -467,3 +467,28 @@ body { overflow-x: hidden; overscroll-behavior-y: none; }
 .module-unit-switch small { margin-top: 4px; color: #8b9d96; font-size: 8px; }
 @media (max-width: 850px) { .module-unit-switcher { display: flex; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; }.module-unit-switch { min-width: 190px; scroll-snap-align: start; } }
 @media (max-width: 520px) { .module-unit-switcher { margin-right: -2px; margin-left: -2px; padding: 5px; }.module-unit-switch { min-width: 168px; padding: 9px; }.module-learning-header { padding-top: 12px; } }
+
+
+/* Layout refinement: give overview a single visual hierarchy and keep module pages dense. */
+.overview-page-container { padding-top: 18px; }
+.overview-page-container .hero-section { gap: 30px; padding: 22px 24px 23px; border: 1px solid #dcebe1; border-radius: 22px; background: linear-gradient(118deg, #f8fcf8 0%, #edf6ef 100%); }
+.overview-page-container .hero-section > div:first-child > p { max-width: 560px; }
+.overview-page-container .hero-stat-card { align-self: stretch; display: flex; flex-direction: column; justify-content: center; }
+.overview-page-container .focus-grid { margin-top: 16px; gap: 12px; }
+.overview-page-container .focus-card, .overview-page-container .streak-card, .overview-page-container .quick-card { min-height: 148px; padding: 18px 19px; }
+.overview-page-container .focus-card-body { margin-top: 13px; }
+.overview-page-container .focus-card-footer { margin-top: 11px; padding-top: 10px; }
+.overview-page-container .dashboard-module { margin-top: 12px; }
+.overview-page-container .site-footer { margin-top: 26px; }
+.module-page-container { padding-top: 10px; }
+.module-page-container .module-learning-header { padding-top: 8px; padding-bottom: 10px; }
+.module-page-container .module-learning-header h1 { font-size: clamp(28px, 3.7vw, 44px); }
+.module-page-container .module-unit-switcher { margin-top: 2px; margin-bottom: 12px; }
+.module-page-container .module-lesson-content { margin-top: 0; }
+@media (max-width: 760px) {
+  .overview-page-container { padding-top: 14px; }
+  .overview-page-container .hero-section { gap: 16px; padding: 18px 16px; border-radius: 17px; }
+  .overview-page-container .focus-grid { margin-top: 12px; }
+  .module-page-container { padding-top: 4px; }
+  .module-page-container .module-learning-header { padding-top: 4px; }
+}

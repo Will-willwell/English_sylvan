@@ -484,7 +484,7 @@ function App() {
           <div className="topbar-actions"><SyncStatus status={syncStatus} deviceStatus={deviceStatus} /><VoicePicker /><PwaInstallButton />{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
         </header>
 
-        <div className="page-container">
+        <div className={`page-container ${viewMode === "overview" ? "overview-page-container" : "module-page-container"}`}>
           {viewMode === "overview" ? <>
           <section className="hero-section">
             <div>
