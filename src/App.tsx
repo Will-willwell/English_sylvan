@@ -30,6 +30,7 @@ import {
 } from "./data/course";
 import { AuthModal } from "./components/AuthModal";
 import { AdminPanel } from "./components/AdminPanel";
+import { AccountPanel } from "./components/AccountPanel";
 import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 import { recordActivity } from "./lib/activity";
 
@@ -93,6 +94,7 @@ function App() {
   const [authChecking, setAuthChecking] = useState(isSupabaseConfigured);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showAccountPanel, setShowAccountPanel] = useState(false);
   const progressLoadRef = useRef(0);
 
   useEffect(() => {
@@ -201,6 +203,7 @@ function App() {
 
   async function signOut() {
     if (supabase) await supabase.auth.signOut();
+    setShowAccountPanel(false);
     setAuthUser(null);
   }
 
@@ -298,7 +301,7 @@ function App() {
         </div>
         <div className="sidebar-footer">
           <div className="mini-goal"><div className="mini-goal-icon"><Sparkles size={16} /></div><div><strong>今日目标</strong><span>完成 1 个口语练习</span></div></div>
-          <button className="user-chip" onClick={() => authUser ? signOut() : setShowAuthModal(true)}><div className="avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div><div><strong>{authUser ? (userToUsername(authUser) || "Learner") : "Not signed in"}</strong><span>{authUser ? "Sign out" : "Sign in"}</span></div><ChevronRight size={16} /></button>
+          <button className="user-chip" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}><div className="avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div><div><strong>{authUser ? (userToUsername(authUser) || "Learner") : "Not signed in"}</strong><span>{authUser ? "Sign out" : "Sign in"}</span></div><ChevronRight size={16} /></button>
         </div>
       </aside>
 
@@ -306,7 +309,7 @@ function App() {
         <header className="topbar">
           <button className="mobile-menu-trigger" onClick={() => setShowMobileMenu(true)} aria-label="打开菜单"><Waves size={20} /></button>
           <div className="breadcrumb"><span>学习总览</span><ChevronRight size={15} /><strong>Chapter {activeUnit.id}</strong></div>
-          <div className="topbar-actions"><button className="help-button"><CircleHelp size={17} />Help</button>{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? signOut() : setShowAuthModal(true)}>{authUser ? "Sign out" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
+          <div className="topbar-actions"><button className="help-button"><CircleHelp size={17} />Help</button>{isAdmin && <button className="account-button admin-trigger" onClick={() => setShowAdminPanel(true)}>Admin</button>}<button className="account-button" onClick={() => authUser ? setShowAccountPanel(true) : setShowAuthModal(true)}>{authUser ? "Account" : "Sign in"}</button><div className="topbar-avatar">{authUser ? (userToUsername(authUser)[0]?.toUpperCase() ?? "U") : "Y"}</div></div>
         </header>
 
         <div className="page-container">
@@ -342,6 +345,7 @@ function App() {
       </main>
       {showAudioPanel && <AudioPanel onClose={() => setShowAudioPanel(false)} />}
       {showAdminPanel && isAdmin && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
+      {showAccountPanel && authUser && <AccountPanel username={userToUsername(authUser) || "Learner"} onClose={() => setShowAccountPanel(false)} onSignOut={signOut} />}
       {showAuthModal && <AuthModal required={isSupabaseConfigured && !authUser} onClose={() => setShowAuthModal(false)} />}
     </div>
   );

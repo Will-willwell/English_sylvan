@@ -246,3 +246,19 @@ h1 em { color: var(--green); font-style: normal; }
 .admin-activity-main small { overflow: hidden; margin-top: 4px; color: #8b9d96; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .admin-activity-row time { flex: 0 0 auto; color: #9aa8a2; font-size: 9px; }
 @media (max-width: 680px) { .admin-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.admin-activity-row { align-items: flex-start; flex-wrap: wrap; }.admin-activity-row time { width: 100%; margin-left: 37px; }.admin-activity-toolbar { align-items: stretch; flex-direction: column; }.admin-activity-toolbar select { width: 100%; } }
+
+.account-modal { width: min(520px, 100%); max-height: min(760px, 92vh); overflow: auto; padding: 27px; border-radius: 18px; background: #fff; box-shadow: 0 30px 75px rgba(18,63,57,.25); }
+.account-identity { display: flex; align-items: center; gap: 11px; margin-top: 22px; padding: 14px; border: 1px solid #dcebe1; border-radius: 12px; background: #f7fbf8; }
+.account-large-avatar { display: grid; place-items: center; width: 39px; height: 39px; color: #fff; border-radius: 12px; background: var(--green); font-weight: 800; }
+.account-identity strong, .account-identity span { display: block; }
+.account-identity strong { color: var(--ink); font-size: 13px; }
+.account-identity span { margin-top: 4px; color: #8b9d96; font-size: 9px; }
+.account-form { display: grid; gap: 14px; margin-top: 21px; }
+.account-section-heading { display: flex; align-items: center; gap: 7px; padding-bottom: 10px; color: var(--green); border-bottom: 1px solid var(--line); font-size: 11px; }
+.account-form label { color: #647b74; font-size: 10px; font-weight: 700; }
+.account-submit { width: 100%; margin-top: 2px; }
+.account-security-note { display: flex; gap: 8px; margin-top: 19px; padding: 12px; color: #647b74; border-radius: 9px; background: #eef7f0; font-size: 10px; line-height: 1.5; }
+.account-security-note svg { flex: 0 0 auto; color: var(--green); }
+.account-signout { display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-top: 14px; padding: 10px; color: #a45549; border: 1px solid #f0d9d2; border-radius: 9px; background: #fff8f5; font-size: 10px; font-weight: 800; }
+.account-signout:hover { background: #fff0eb; }
+@media (max-width: 520px) { .account-modal { padding: 21px; } }
