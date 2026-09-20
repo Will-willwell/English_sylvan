@@ -107,4 +107,4 @@ SUPABASE_SECRET_KEY=sb_secret_...
 
 Legacy Supabase projects may use `SUPABASE_SERVICE_ROLE_KEY` instead of `SUPABASE_SECRET_KEY`. Never prefix either secret with `VITE_`, never expose it to the browser, and never commit it to GitHub.
 
-After deployment, sign in as the promoted administrator and open **Admin** in the header. The console can create users, reset passwords, enable/disable accounts, change display names, and grant/revoke administrator status. It intentionally has no delete action.
+After deployment, sign in as the promoted administrator and open **Admin** in the header. The console can create users, reset passwords, enable/disable accounts, change display names, and grant/revoke administrator status. Deleting a user requires explicit browser confirmation and removes the Auth account, profile, cloud progress, and allowlist entry. The current administrator account cannot delete itself.

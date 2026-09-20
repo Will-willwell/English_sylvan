@@ -184,12 +184,41 @@ async function handlePatch(context: PagesContext, client: SupabaseClient) {
   return json({ ok: true });
 }
 
+async function handleDelete(context: PagesContext, client: SupabaseClient) {
+  const auth = await requireAdmin(context, client);
+  if (auth.error) return auth.error;
+  const body = await context.request.json().catch(() => ({}));
+  const username = normalizedUsername(body.username);
+  const metadataUsername = normalizedUsername(auth.user.user_metadata?.username);
+  const emailUsername = normalizedUsername(auth.user.email?.split("@")[0]);
+  const currentUsername = metadataUsername || emailUsername;
+
+  if (!USERNAME_PATTERN.test(username)) return json({ error: "Invalid username." }, 400);
+  if (username === currentUsername) return json({ error: "You cannot delete the administrator account you are currently using." }, 400);
+
+  const { data: users, error: listError } = await client.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (listError) return json({ error: listError.message }, 400);
+  const authUser = users.users.find((user) => user.email?.toLowerCase() === usernameEmail(username));
+
+  // Remove the Auth user first. Its profile and user_progress rows cascade by FK.
+  if (authUser) {
+    const { error: deleteAuthError } = await client.auth.admin.deleteUser(authUser.id);
+    if (deleteAuthError) return json({ error: deleteAuthError.message }, 400);
+  }
+
+  const { error: deleteAllowlistError } = await client.from("allowed_usernames").delete().eq("username", username);
+  if (deleteAllowlistError) return json({ error: deleteAllowlistError.message }, 400);
+
+  return json({ ok: true, username });
+}
+
 export async function onRequest(context: PagesContext) {
   try {
     const client = adminClient(context.env);
     if (context.request.method === "GET") return await handleGet(context, client);
     if (context.request.method === "POST") return await handlePost(context, client);
     if (context.request.method === "PATCH") return await handlePatch(context, client);
+    if (context.request.method === "DELETE") return await handleDelete(context, client);
     return json({ error: "Method not allowed" }, 405);
   } catch (error) {
     console.error(error);

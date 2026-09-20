@@ -220,3 +220,6 @@ h1 em { color: var(--green); font-style: normal; }
 .spin { animation: admin-spin .9s linear infinite; }
 @keyframes admin-spin { to { transform: rotate(360deg); } }
 @media (max-width: 680px) { .admin-modal { padding: 20px; }.admin-form-grid { grid-template-columns: 1fr; }.admin-user-row { grid-template-columns: 1fr; }.admin-user-fields { grid-template-columns: 1fr; }.admin-user-actions { grid-column: auto; } }
+
+.admin-user-actions .text-button.danger { color: #a45549; }
+.admin-user-actions .text-button.danger:hover { color: #8c3328; }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Check, KeyRound, LoaderCircle, Power, RefreshCw, ShieldCheck, UserPlus, X } from "lucide-react";
-import { createAdminUser, listAdminUsers, updateAdminUser, type AdminUser } from "../lib/admin";
+import { Check, KeyRound, LoaderCircle, Power, RefreshCw, ShieldCheck, Trash2, UserPlus, X } from "lucide-react";
+import { createAdminUser, deleteAdminUser, listAdminUsers, updateAdminUser, type AdminUser } from "../lib/admin";
 
 type AdminPanelProps = { onClose: () => void };
 type FormMessage = { type: "error" | "success"; text: string } | null;
@@ -56,6 +56,19 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
     } finally { setBusy(""); }
   }
 
+  async function removeUser(username: string) {
+    if (!window.confirm(`Delete ${username}? This removes the Auth account, profile, progress, and allowlist entry. This cannot be undone.`)) return;
+    setBusy(`${username}:delete`);
+    setMessage(null);
+    try {
+      await deleteAdminUser(username);
+      setMessage({ type: "success", text: `User ${username} was deleted.` });
+      await refresh();
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Could not delete the user." });
+    } finally { setBusy(""); }
+  }
+
   return <div className="modal-backdrop" onClick={onClose}>
     <div className="admin-modal" onClick={(event) => event.stopPropagation()}>
       <div className="modal-heading">
@@ -70,14 +83,14 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
         <button className="primary-button compact" onClick={() => void createUser()} disabled={busy === "create"}>{busy === "create" ? <LoaderCircle size={15} className="spin" /> : <Check size={15} />}Create and enable</button>
       </div>}
       <div className="admin-list">
-        {loading && users.length === 0 ? <div className="admin-empty"><LoaderCircle className="spin" size={20} />Loading users...</div> : users.length === 0 ? <div className="admin-empty">No allowlisted users.</div> : users.map((user) => <AdminUserRow key={user.username} user={user} busy={busy} onPatch={patchUser} />)}
+        {loading && users.length === 0 ? <div className="admin-empty"><LoaderCircle className="spin" size={20} />Loading users...</div> : users.length === 0 ? <div className="admin-empty">No allowlisted users.</div> : users.map((user) => <AdminUserRow key={user.username} user={user} busy={busy} onPatch={patchUser} onDelete={removeUser} />)}
       </div>
-      <div className="modal-note"><ShieldCheck size={15} />Changes update Supabase Auth and the username allowlist. User deletion is intentionally not available.</div>
+      <div className="modal-note"><ShieldCheck size={15} />Changes update Supabase Auth and the username allowlist. Deleting a user also removes that user's profile and cloud progress.</div>
     </div>
   </div>;
 }
 
-function AdminUserRow({ user, busy, onPatch }: { user: AdminUser; busy: string; onPatch: (input: PatchInput, busyKey: string, successText: string) => Promise<void> }) {
+function AdminUserRow({ user, busy, onPatch, onDelete }: { user: AdminUser; busy: string; onPatch: (input: PatchInput, busyKey: string, successText: string) => Promise<void>; onDelete: (username: string) => Promise<void> }) {
   const [displayName, setDisplayName] = useState(user.display_name);
   const [password, setPassword] = useState("");
   const key = user.username;
@@ -85,6 +98,6 @@ function AdminUserRow({ user, busy, onPatch }: { user: AdminUser; busy: string; 
   return <div className={`admin-user-row ${user.is_active ? "" : "is-disabled"}`}>
     <div className="admin-user-main"><div className="admin-avatar">{user.username[0]?.toUpperCase()}</div><div><strong>{user.username}</strong><span>{user.is_admin ? "Administrator" : "Learner"} ? {user.is_active ? "Enabled" : "Disabled"}</span></div></div>
     <div className="admin-user-fields"><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} aria-label={`${user.username} display name`} /><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="New password (optional)" aria-label={`${user.username} new password`} /></div>
-    <div className="admin-user-actions"><button className="text-button" disabled={saving || !password || password.length < 6} onClick={() => { const next = password; setPassword(""); void onPatch({ username: key, password: next }, `${key}:password`, "Password reset."); }}><KeyRound size={14} />Reset password</button><button className="text-button" disabled={saving || displayName === user.display_name} onClick={() => void onPatch({ username: key, display_name: displayName }, `${key}:name`, "Display name saved.")}><Check size={14} />Save name</button><button className="text-button" disabled={saving} onClick={() => void onPatch({ username: key, is_active: !user.is_active }, `${key}:active`, user.is_active ? "User disabled." : "User enabled.")}><Power size={14} />{user.is_active ? "Disable" : "Enable"}</button><button className="text-button" disabled={saving} onClick={() => void onPatch({ username: key, is_admin: !user.is_admin }, `${key}:admin`, user.is_admin ? "Administrator access removed." : "Administrator access granted.")}><ShieldCheck size={14} />{user.is_admin ? "Remove admin" : "Make admin"}</button></div>
+    <div className="admin-user-actions"><button className="text-button" disabled={saving || !password || password.length < 6} onClick={() => { const next = password; setPassword(""); void onPatch({ username: key, password: next }, `${key}:password`, "Password reset."); }}><KeyRound size={14} />Reset password</button><button className="text-button" disabled={saving || displayName === user.display_name} onClick={() => void onPatch({ username: key, display_name: displayName }, `${key}:name`, "Display name saved.")}><Check size={14} />Save name</button><button className="text-button" disabled={saving} onClick={() => void onPatch({ username: key, is_active: !user.is_active }, `${key}:active`, user.is_active ? "User disabled." : "User enabled.")}><Power size={14} />{user.is_active ? "Disable" : "Enable"}</button><button className="text-button" disabled={saving} onClick={() => void onPatch({ username: key, is_admin: !user.is_admin }, `${key}:admin`, user.is_admin ? "Administrator access removed." : "Administrator access granted.")}><ShieldCheck size={14} />{user.is_admin ? "Remove admin" : "Make admin"}</button><button className="text-button danger" disabled={saving || busy === `${key}:delete`} onClick={() => void onDelete(key)}><Trash2 size={14} />Delete</button></div>
   </div>;
 }

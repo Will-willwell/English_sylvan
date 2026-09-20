@@ -49,3 +49,8 @@ export async function createAdminUser(input: { username: string; password: strin
 export async function updateAdminUser(input: { username: string; password?: string; display_name?: string; is_active?: boolean; is_admin?: boolean }) {
   return adminRequest("/api/admin/users", { method: "PATCH", body: JSON.stringify(input) });
 }
+
+
+export async function deleteAdminUser(username: string) {
+  return adminRequest("/api/admin/users", { method: "DELETE", body: JSON.stringify({ username }) });
+}
