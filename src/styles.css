@@ -512,3 +512,22 @@ body { overflow-x: hidden; overscroll-behavior-y: none; }
   .module-page-container .module-learning-header p { display: none; }
   .module-page-container .module-learning-count { width: 52px; height: 52px; }
 }
+
+
+/* AI pronunciation scoring */
+.pronunciation-result { display: grid; gap: 12px; margin-top: 12px; }
+.pronunciation-score-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.pronunciation-score { padding: 10px 8px; border: 1px solid #dcebe1; border-radius: 9px; background: #f7fbf8; text-align: center; }
+.pronunciation-score strong, .pronunciation-score span { display: block; }
+.pronunciation-score strong { color: var(--green-dark); font: 800 20px "Manrope", sans-serif; }
+.pronunciation-score span { margin-top: 3px; color: #8b9d96; font-size: 8px; }
+.word-assessment { padding: 12px; border-radius: 10px; background: #f8faf8; }
+.word-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.word-chips span { display: inline-flex; align-items: baseline; gap: 4px; padding: 6px 7px; border: 1px solid; border-radius: 7px; font-size: 10px; font-weight: 800; }
+.word-chips span small { font-size: 8px; font-weight: 700; }
+.word-chips .good { color: #317454; border-color: #b9dfc2; background: #eaf7ed; }
+.word-chips .needs-work { color: #a45549; border-color: #efc8bd; background: #fff0eb; }
+.pronunciation-legend { display: flex; align-items: center; gap: 5px; margin-top: 9px; color: #8b9d96; font-size: 8px; }
+.legend-good, .legend-needs-work { width: 6px; height: 6px; border-radius: 50%; background: #62a57a; }
+.legend-needs-work { margin-left: 7px; background: #cf765f; }
+@media (max-width: 520px) { .pronunciation-score strong { font-size: 17px; }.pronunciation-score-grid { gap: 5px; }.pronunciation-score { padding: 8px 4px; } }

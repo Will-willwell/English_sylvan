@@ -152,3 +152,16 @@ The pronunciation controls use the browser's available English voices and let th
 The brand is now **DOIT**. The hero audio shortcut was removed from the top action row, Help was removed from the header, and the account control remains in the top-right. The sidebar goal card opens the review module, while review, current Unit, and course map are collapsible dashboard modules.
 
 Each Unit now has original coaching content in `src/data/lessonEnrichment.ts`: a communication goal, useful patterns, a short speaking drill, a common pitfall, and self-check items. This enriches the chapter experience without copying full book pages.
+
+## AI pronunciation assessment
+
+The Practice view now records the target sentence with the browser microphone, sends a temporary WAV conversion to `/api/pronunciation/assess`, and displays overall, accuracy, fluency, completeness, and word-level scores. The raw recording is not stored by the app.
+
+To enable the real AI scorer, add these **server-only** Cloudflare Pages variables:
+
+```text
+AZURE_SPEECH_KEY=...
+AZURE_SPEECH_REGION=eastus
+```
+
+The endpoint also requires the existing `SUPABASE_URL` and `SUPABASE_SECRET_KEY` variables to verify the signed-in user. Without Azure variables, the site explains that pronunciation assessment is not configured instead of falling back to a misleading score.

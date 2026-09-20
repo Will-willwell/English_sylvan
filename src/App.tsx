@@ -8,6 +8,7 @@ import {
   Clock3,
   Headphones,
   LayoutDashboard,
+  LoaderCircle,
   LockKeyhole,
   Mic,
   Pause,
@@ -35,6 +36,7 @@ import { VoicePicker } from "./components/VoicePicker";
 import { ReviewPanel } from "./components/ReviewPanel";
 import { CollapsibleSection } from "./components/CollapsibleSection";
 import { lessonEnrichment } from "./data/lessonEnrichment";
+import { assessPronunciation, blobToWav, type PronunciationAssessment } from "./lib/pronunciation";
 import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
 import { recordActivity } from "./lib/activity";
 import { applyReview, createInitialReview, readReviewStates, reviewStorageKey, type ReviewRating, type ReviewState } from "./lib/review";
@@ -606,23 +608,73 @@ function LocalAudioPlayer({ unit }: { unit: Unit }) {
 
 function PracticePanel({ unit, target, userId, onProgress }: { unit: Unit; target: string; userId?: string; onProgress: (progress: number) => void }) {
   const [isRecording, setIsRecording] = useState(false);
+  const [isAssessing, setIsAssessing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [feedback, setFeedback] = useState<string[]>([]);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  function toggleRecording() {
-    const speechWindow = window as WindowWithSpeech;
-    const Recognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
-    if (!isRecording) {
-      if (!Recognition) { setFeedback(["当前浏览器没有开放语音识别接口。你仍可以播放示范并手动复述。"]); return; }
-      const recognition = new Recognition();
-      recognition.lang = "en-US"; recognition.continuous = false; recognition.interimResults = false;
-      recognition.onresult = (event) => { const text = event.results[0][0].transcript; setTranscript(text); setFeedback(compareSpeech(target, text)); onProgress(82); };
-      recognition.onend = () => setIsRecording(false);
-      recognition.onerror = () => { setIsRecording(false); setFeedback(["没有捕捉到清晰语音，请靠近麦克风并再试一次。"]); };
-      recognitionRef.current = recognition; recognition.start(); setIsRecording(true); setFeedback([]);
-    } else { recognitionRef.current?.stop(); setIsRecording(false); }
+  const [assessment, setAssessment] = useState<PronunciationAssessment | null>(null);
+  const [error, setError] = useState("");
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  async function toggleRecording() {
+    setError("");
+    if (isRecording) {
+      recorderRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setError("This browser does not support microphone recording. Try the latest Chrome, Edge, or Safari.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = (event) => { if (event.data.size > 0) chunksRef.current.push(event.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        setIsAssessing(true);
+        try {
+          const result = await assessPronunciation(await blobToWav(blob), target);
+          setAssessment(result);
+          setTranscript(result.recognizedText);
+          setFeedback(buildPronunciationFeedback(result));
+          onProgress(82);
+          if (userId) void recordActivity({ userId, activityType: "progress_updated", unitId: unit.id, metadata: { pronunciation_score: result.pronunciationScore, accuracy_score: result.accuracyScore, fluency_score: result.fluencyScore } });
+        } catch (reason) {
+          setError(reason instanceof Error ? reason.message : "Pronunciation assessment failed.");
+        } finally { setIsAssessing(false); }
+      };
+      recorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+      setAssessment(null);
+      setTranscript("");
+      setFeedback([]);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Microphone permission was not granted.");
+    }
   }
-  return <div className="section-card practice-panel"><div className="panel-heading"><div><div className="card-kicker">SHADOWING · UNIT {String(unit.id).padStart(2, "0")}</div><h2>跟着示范，说出你的版本</h2></div><span className="practice-status"><span />浏览器语音识别</span></div><div className="target-sentence"><div className="sentence-label">TARGET SENTENCE</div><div className="sentence-text">{target}</div><div className="sentence-actions"><button className="audio-action" onClick={() => speak(target)}><Volume2 size={16} />播放示范</button><span>建议：先慢速、再自然语速</span></div></div><div className="record-zone"><button className={`record-button ${isRecording ? "recording" : ""}`} onClick={toggleRecording}>{isRecording ? <Pause size={25} fill="currentColor" /> : <Mic size={25} />}</button><strong>{isRecording ? "正在聆听…" : "点击开始录音"}</strong><span>{isRecording ? "说完后会自动停止" : "允许麦克风权限后开始"}</span></div>{transcript && <div className="transcript-box"><div><span className="card-kicker">你的识别结果</span><p>{transcript}</p></div><button className="icon-button" onClick={() => { setTranscript(""); setFeedback([]); }} aria-label="清除"><RotateCcw size={16} /></button></div>}{feedback.length > 0 && <div className="feedback-box"><div className="feedback-title"><Sparkles size={16} />即时反馈</div>{feedback.map((item) => <div key={item} className="feedback-line"><Check size={15} />{item}</div>)}</div>}<div className="panel-footer"><span><Waves size={15} />发音反馈是辅助练习，不等同于专业测评</span><button className="secondary-button compact" onClick={() => onProgress(90)}>标记本次完成 <Check size={15} /></button></div></div>;
+
+  return <div className="section-card practice-panel"><div className="panel-heading"><div><div className="card-kicker">AI PRONUNCIATION ? UNIT {String(unit.id).padStart(2, "0")}</div><h2>Read the target sentence aloud</h2></div><span className="practice-status"><span />{isAssessing ? "AI is assessing" : "Word-level feedback"}</span></div><div className="target-sentence"><div className="sentence-label">TARGET SENTENCE</div><div className="sentence-text">{target}</div><div className="sentence-actions"><button className="audio-action" onClick={() => speak(target)}><Volume2 size={16} />Play example</button><span>Speak naturally at a comfortable pace.</span></div></div><div className="record-zone"><button className={`record-button ${isRecording ? "recording" : ""}`} onClick={() => void toggleRecording()} disabled={isAssessing}>{isAssessing ? <LoaderCircle size={25} className="spin" /> : isRecording ? <Pause size={25} fill="currentColor" /> : <Mic size={25} />}</button><strong>{isAssessing ? "Analyzing your pronunciation..." : isRecording ? "Listening... tap to stop" : "Tap to record"}</strong><span>{isAssessing ? "Your recording is sent for scoring and is not stored by this app." : "Allow microphone access to begin."}</span></div>{error && <div className="auth-message error">{error}</div>}{assessment && <PronunciationResult assessment={assessment} />}{transcript && <div className="transcript-box"><div><span className="card-kicker">Recognized speech</span><p>{transcript}</p></div><button className="icon-button" onClick={() => { setTranscript(""); setFeedback([]); setAssessment(null); }} aria-label="Clear result"><RotateCcw size={16} /></button></div>}{feedback.length > 0 && <div className="feedback-box"><div className="feedback-title"><Sparkles size={16} />Coaching tips</div>{feedback.map((item) => <div key={item} className="feedback-line"><Check size={15} />{item}</div>)}</div>}<div className="panel-footer"><span><Waves size={15} />AI scoring supports practice, not formal certification.</span><button className="secondary-button compact" onClick={() => onProgress(90)}>Mark practice complete <Check size={15} /></button></div></div>;
+}
+
+function PronunciationResult({ assessment }: { assessment: PronunciationAssessment }) {
+  return <div className="pronunciation-result"><div className="pronunciation-score-grid"><Score label="Overall" value={assessment.pronunciationScore} /><Score label="Accuracy" value={assessment.accuracyScore} /><Score label="Fluency" value={assessment.fluencyScore} /><Score label="Completeness" value={assessment.completenessScore} /></div><div className="word-assessment"><div className="card-kicker">WORD-LEVEL CORRECTION</div><div className="word-chips">{assessment.words.map((word, index) => <span key={`${word.word}-${index}`} className={word.errorType === "None" ? "good" : "needs-work"} title={word.errorType}>{word.word}<small>{word.accuracyScore}</small></span>)}</div><p className="pronunciation-legend"><span className="legend-good" /> Strong <span className="legend-needs-work" /> Needs another try</p></div></div>;
+}
+
+function Score({ label, value }: { label: string; value: number }) { return <div className="pronunciation-score"><strong>{value}</strong><span>{label}</span></div>; }
+
+function buildPronunciationFeedback(result: PronunciationAssessment) {
+  const weakWords = result.words.filter((word) => word.accuracyScore < 70).slice(0, 3).map((word) => word.word).filter(Boolean);
+  const tips = [];
+  if (weakWords.length) tips.push(`Try again slowly on: ${weakWords.join(", ")}.`);
+  if (result.fluencyScore < 70) tips.push("Keep the sentence moving; pause between ideas rather than between every word.");
+  if (result.completenessScore < 85) tips.push("Some target words were missed. Speak a little louder and keep the sentence in view.");
+  if (!tips.length) tips.push("Good foundation. Repeat once more and focus on natural sentence stress.");
+  return tips;
 }
 
 function DialoguePanel({ unit, lesson, userId, onProgress }: { unit: Unit; lesson: LessonContent; userId?: string; onProgress: (progress: number) => void }) {
