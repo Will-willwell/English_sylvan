@@ -31,6 +31,7 @@ import {
 import { AuthModal } from "./components/AuthModal";
 import { AdminPanel } from "./components/AdminPanel";
 import { isSupabaseConfigured, supabase, userToUsername } from "./lib/supabase";
+import { recordActivity } from "./lib/activity";
 
 const STORAGE_KEY = "business-speaking-progress-v1";
 
@@ -104,9 +105,16 @@ function App() {
     }).catch(() => {
       if (mounted) setAuthChecking(false);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setAuthUser(session?.user ?? null);
       setAuthChecking(false);
+      if (event === "SIGNED_IN" && session?.user) {
+        void recordActivity({
+          userId: session.user.id,
+          activityType: "login",
+          metadata: { source: "web" },
+        });
+      }
     });
     return () => {
       mounted = false;
@@ -212,6 +220,8 @@ function App() {
 
   function updateUnitProgress(nextProgress: number) {
     const updatedProgress = clampProgress(Math.max(progress, nextProgress));
+    if (updatedProgress === progress) return;
+
     const next = { ...savedProgress, [activeUnit.id]: updatedProgress };
     const storageKey = progressStorageKey(authUser?.id);
     setSavedProgress(next);
@@ -229,6 +239,26 @@ function App() {
         .then(({ error }) => {
           if (error) console.warn("Progress was saved locally but not synced to Supabase.", error.message);
         });
+      void recordActivity({
+        userId: authUser.id,
+        activityType: "progress_updated",
+        unitId: activeUnit.id,
+        metadata: { progress: updatedProgress },
+      });
+    }
+  }
+
+  function startPractice() {
+    setActiveTab("practice");
+    if (authUser) {
+      void recordActivity({ userId: authUser.id, activityType: "practice_started", unitId: activeUnit.id });
+    }
+  }
+
+  function startDialogue() {
+    setActiveTab("dialogue");
+    if (authUser) {
+      void recordActivity({ userId: authUser.id, activityType: "dialogue_started", unitId: activeUnit.id });
     }
   }
 
@@ -236,6 +266,14 @@ function App() {
     setActiveUnitId(unit.id);
     setActiveTab("learn");
     setShowMobileMenu(false);
+    if (authUser) {
+      void recordActivity({
+        userId: authUser.id,
+        activityType: "unit_opened",
+        unitId: unit.id,
+        metadata: { title: unit.title },
+      });
+    }
     document.getElementById("lesson-workspace")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -277,7 +315,7 @@ function App() {
               <div className="eyebrow"><span className="eyebrow-dot" />你的商务英语口语路径</div>
               <h1>把每一次寒暄，<em>变成机会。</em></h1>
               <p>按《Collins English for Business: Speaking》章节学习，先听清楚，再说自然，最后在真实商务场景中用出来。</p>
-              <div className="hero-actions"><button className="primary-button" onClick={() => { setActiveTab("practice"); updateUnitProgress(70); }}><Play size={17} fill="currentColor" />继续 Unit {activeUnit.id}</button><button className="secondary-button" onClick={() => setShowAudioPanel(true)}><Headphones size={17} />查看听力资源</button></div>
+              <div className="hero-actions"><button className="primary-button" onClick={() => { startPractice(); updateUnitProgress(70); }}><Play size={17} fill="currentColor" />继续 Unit {activeUnit.id}</button><button className="secondary-button" onClick={() => setShowAudioPanel(true)}><Headphones size={17} />查看听力资源</button></div>
             </div>
             <div className="hero-stat-card"><div className="stat-card-top"><span>学习进度</span><span className="stat-label">B1–C2 · Business English</span></div><div className="big-progress"><strong>{overallProgress}%</strong><span>全书进度</span></div><div className="progress-track"><span style={{ width: `${overallProgress}%` }} /></div><div className="stat-foot"><span><Check size={14} /> {completedUnits} / 20 章节完成</span><span><Clock3 size={14} /> 每日 10 分钟</span></div></div>
           </section>
@@ -285,15 +323,15 @@ function App() {
           <section className="focus-grid">
             <div className="section-card focus-card"><div className="card-kicker">继续学习 · Unit {activeUnit.id}</div><div className="focus-card-body"><div><h2>{activeUnit.title}</h2><p>{activeUnit.chinese} · {activeUnit.section}</p></div><div className="ring-progress" style={{ "--progress": `${progress * 3.6}deg` } as CSSProperties}><span>{progress}<small>%</small></span></div></div><div className="focus-card-footer"><span><Clock3 size={15} />约 12 分钟</span><button className="text-button" onClick={() => setActiveTab("learn")}>进入章节 <ArrowUpRight size={15} /></button></div></div>
             <div className="section-card streak-card"><div className="streak-icon"><Sparkles size={19} /></div><div><div className="card-kicker">学习节奏</div><h2>连续 3 天</h2><p>再坚持 4 天，解锁本周徽章</p></div><div className="streak-bars"><i /><i /><i /><i className="muted" /><i className="muted" /><i className="muted" /><i className="muted" /></div></div>
-            <div className="section-card quick-card"><div className="quick-card-icon"><Mic size={19} /></div><div><div className="card-kicker">快速练习</div><h2>练一句就好</h2><p>用 60 秒复习当前章节的重点表达</p></div><button className="round-arrow" onClick={() => setActiveTab("practice")}><ArrowUpRight size={18} /></button></div>
+            <div className="section-card quick-card"><div className="quick-card-icon"><Mic size={19} /></div><div><div className="card-kicker">快速练习</div><h2>练一句就好</h2><p>用 60 秒复习当前章节的重点表达</p></div><button className="round-arrow" onClick={startPractice}><ArrowUpRight size={18} /></button></div>
           </section>
 
           <section id="lesson-workspace" className="workspace-grid">
             <div className="content-column">
-              <div className="tabs-row"><div className="tabs"><button className={activeTab === "learn" ? "active" : ""} onClick={() => setActiveTab("learn")}>Learn</button><button className={activeTab === "practice" ? "active" : ""} onClick={() => setActiveTab("practice")}>Practice</button><button className={activeTab === "dialogue" ? "active" : ""} onClick={() => setActiveTab("dialogue")}>Dialogue</button></div><span className="source-badge"><span />20 Units loaded</span></div>
-              {activeTab === "learn" && <LearnPanel unit={activeUnit} lesson={lesson} onSpeak={() => speak(activeUnit.title)} onProgress={updateUnitProgress} onPractice={() => setActiveTab("practice")} />}
-              {activeTab === "practice" && <PracticePanel unit={activeUnit} target={lesson.expressions[0].english} onProgress={updateUnitProgress} />}
-              {activeTab === "dialogue" && <DialoguePanel unit={activeUnit} lesson={lesson} onProgress={updateUnitProgress} />}
+              <div className="tabs-row"><div className="tabs"><button className={activeTab === "learn" ? "active" : ""} onClick={() => setActiveTab("learn")}>Learn</button><button className={activeTab === "practice" ? "active" : ""} onClick={startPractice}>Practice</button><button className={activeTab === "dialogue" ? "active" : ""} onClick={startDialogue}>Dialogue</button></div><span className="source-badge"><span />20 Units loaded</span></div>
+              {activeTab === "learn" && <LearnPanel unit={activeUnit} lesson={lesson} onSpeak={() => speak(activeUnit.title)} onProgress={updateUnitProgress} onPractice={startPractice} />}
+              {activeTab === "practice" && <PracticePanel unit={activeUnit} target={lesson.expressions[0].english} userId={authUser?.id} onProgress={updateUnitProgress} />}
+              {activeTab === "dialogue" && <DialoguePanel unit={activeUnit} lesson={lesson} userId={authUser?.id} onProgress={updateUnitProgress} />}
             </div>
             <aside className="right-column"><div className="section-card pronunciation-card"><div className="card-title-row"><div><div className="card-kicker">当前章节发音焦点</div><h3>{activeUnit.id === 1 ? "连读 · Connected speech" : "商务语气 · Professional tone"}</h3></div><Volume2 size={19} className="green-icon" /></div><div className="pronunciation-example"><span>{lesson.expressions[0].english}</span><button onClick={() => speak(lesson.expressions[0].english)} aria-label="播放示范"><Volume2 size={16} /></button></div><p>先听示范，再录下自己的版本。识别结果用于辅助纠正完整度、节奏与重点表达，不等同于专业发音测评。</p><button className="outline-button" onClick={() => setActiveTab("practice")}>开始模仿 <ChevronRight size={15} /></button></div><div className="section-card resource-card"><div className="card-title-row"><div><div className="card-kicker">学习资料</div><h3>听力资源状态</h3></div><Headphones size={19} className="green-icon" /></div><div className="resource-status"><span className="status-dot warning" /><div><strong>官方入口已确认</strong><span>原书标注 included CD；本站不转载音频文件</span></div></div><button className="text-button" onClick={() => setShowAudioPanel(true)}>查看来源与说明 <ArrowUpRight size={15} /></button></div></aside>
           </section>
@@ -328,7 +366,7 @@ function LocalAudioPlayer({ unit }: { unit: Unit }) {
   return <div className="local-audio-slot"><div><div className="card-kicker">OPTIONAL AUDIO · 本地正版音频</div><strong>{fileName || `Unit ${unit.id} 暂未选择本地 MP3`}</strong><span>选择你拥有授权的 MP3，只在当前浏览器本地播放，不会上传。</span></div>{audioUrl ? <audio controls src={audioUrl} /> : <label className="audio-upload-button"><Headphones size={15} />选择音频<input type="file" accept="audio/*" onChange={(event) => chooseAudio(event.target.files?.[0])} /></label>}</div>;
 }
 
-function PracticePanel({ unit, target, onProgress }: { unit: Unit; target: string; onProgress: (progress: number) => void }) {
+function PracticePanel({ unit, target, userId, onProgress }: { unit: Unit; target: string; userId?: string; onProgress: (progress: number) => void }) {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [feedback, setFeedback] = useState<string[]>([]);
@@ -349,7 +387,7 @@ function PracticePanel({ unit, target, onProgress }: { unit: Unit; target: strin
   return <div className="section-card practice-panel"><div className="panel-heading"><div><div className="card-kicker">SHADOWING · UNIT {String(unit.id).padStart(2, "0")}</div><h2>跟着示范，说出你的版本</h2></div><span className="practice-status"><span />浏览器语音识别</span></div><div className="target-sentence"><div className="sentence-label">TARGET SENTENCE</div><div className="sentence-text">{target}</div><div className="sentence-actions"><button className="audio-action" onClick={() => speak(target)}><Volume2 size={16} />播放示范</button><span>建议：先慢速、再自然语速</span></div></div><div className="record-zone"><button className={`record-button ${isRecording ? "recording" : ""}`} onClick={toggleRecording}>{isRecording ? <Pause size={25} fill="currentColor" /> : <Mic size={25} />}</button><strong>{isRecording ? "正在聆听…" : "点击开始录音"}</strong><span>{isRecording ? "说完后会自动停止" : "允许麦克风权限后开始"}</span></div>{transcript && <div className="transcript-box"><div><span className="card-kicker">你的识别结果</span><p>{transcript}</p></div><button className="icon-button" onClick={() => { setTranscript(""); setFeedback([]); }} aria-label="清除"><RotateCcw size={16} /></button></div>}{feedback.length > 0 && <div className="feedback-box"><div className="feedback-title"><Sparkles size={16} />即时反馈</div>{feedback.map((item) => <div key={item} className="feedback-line"><Check size={15} />{item}</div>)}</div>}<div className="panel-footer"><span><Waves size={15} />发音反馈是辅助练习，不等同于专业测评</span><button className="secondary-button compact" onClick={() => onProgress(90)}>标记本次完成 <Check size={15} /></button></div></div>;
 }
 
-function DialoguePanel({ unit, lesson, onProgress }: { unit: Unit; lesson: LessonContent; onProgress: (progress: number) => void }) {
+function DialoguePanel({ unit, lesson, userId, onProgress }: { unit: Unit; lesson: LessonContent; userId?: string; onProgress: (progress: number) => void }) {
   const [step, setStep] = useState(0);
   const messages = lesson.dialogue.messages;
   return <div className="section-card dialogue-panel"><div className="panel-heading"><div><div className="card-kicker">ROLEPLAY · UNIT {String(unit.id).padStart(2, "0")}</div><h2>{lesson.dialogue.scenario}</h2></div><span className="dialogue-progress">{Math.min(step + 1, messages.length)} / {messages.length}</span></div><div className="scenario-note"><Sparkles size={16} /><span>提示：{lesson.dialogue.hint}</span></div><div className="chat-thread">{messages.slice(0, step + 1).map((message, index) => <div key={`${message.role}-${index}`} className={`chat-bubble ${message.role}`}><div className="chat-avatar">{message.role === "coach" ? "A" : "你"}</div><div><span>{message.name}</span><p>{message.text}</p></div></div>)}</div><div className="dialogue-actions">{step < messages.length - 1 ? <button className="primary-button" onClick={() => { setStep(step + 1); onProgress(96); }}><Mic size={17} />说出下一句</button> : <button className="primary-button" onClick={() => onProgress(100)}><Check size={17} />完成本次对话</button>}<button className="secondary-button" onClick={() => setStep(0)}><RotateCcw size={16} />重新开始</button></div></div>;
